@@ -1,3 +1,6 @@
+#include "arduino_secrets.h"
+#include "thingProperties.h"
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <SensirionI2cSht4x.h>
@@ -21,8 +24,8 @@ float sht45Temperature = NAN;
 float sht45Humidity = NAN;
 float scd41Temperature = NAN;
 float scd41Humidity = NAN;
-uint16_t scd41CO2 = 0;
-uint16_t sgp40RawVoc = 0;
+uint16_t scd41CO2Concentration = 0;
+uint16_t sgp40VocRaw = 0;
 int32_t sgp40VocIndex = 0;
 float bmp180Temperature = NAN;
 float bmp180Pressure = NAN;
@@ -84,15 +87,15 @@ void readSHT45Data() {
 }
 
 void readSCD41Data() {
-  uint16_t tempCO2 = 0;
+  uint16_t tempCO2Concentration = 0;
   float tempScd41Temperature = 0.0f;
   float tempScd41Humidity = 0.0f;
   bool isDataReady = false;
   scd41.getDataReadyFlag(isDataReady);
   if (isDataReady) {
-    uint16_t scd41Error = scd41.readMeasurement(tempCO2, tempScd41Temperature, tempScd41Humidity);
-    if (scd41Error == 0 && tempCO2 != 0) {
-      scd41CO2 = tempCO2;
+    uint16_t scd41Error = scd41.readMeasurement(tempCO2Concentration, tempScd41Temperature, tempScd41Humidity);
+    if (scd41Error == 0 && tempCO2Concentration != 0) {
+      scd41CO2Concentration = tempCO2Concentration;
       scd41Temperature = tempScd41Temperature;
       scd41Humidity = tempScd41Humidity;
     } else {
@@ -116,11 +119,11 @@ void readSGP40Data() {
     compensationT = defaultT;
   }
 
-  uint16_t tempSrawVoc = 0;
-  sgp40Error = sgp40.measureRawSignal(compensationRh, compensationT, tempSrawVoc);
+  uint16_t tempVocRaw = 0;
+  sgp40Error = sgp40.measureRawSignal(compensationRh, compensationT, tempVocRaw);
   if (sgp40Error == 0) {
-    sgp40RawVoc = tempSrawVoc;
-    sgp40VocIndex = vocAlgorithm.process(sgp40RawVoc);
+    sgp40VocRaw = tempVocRaw;
+    sgp40VocIndex = vocAlgorithm.process(sgp40VocRaw);
   } else {
     Serial.println("SGP40 measurement error.");
   }
@@ -164,7 +167,7 @@ void displayData() {
 
     u8g2.setCursor(0, 20);
     u8g2.print("SCD41 CO2 ");
-    u8g2.print(scd41CO2 != 0 ? String(scd41CO2) + "ppm" : "N/A");
+    u8g2.print(scd41CO2Concentration != 0 ? String(scd41CO2Concentration) + "ppm" : "N/A");
 
     u8g2.setCursor(0, 30);
     u8g2.print("SGP40 VOC ");
@@ -188,7 +191,7 @@ void printDataToSerial() {
   Serial.print("Humidity: ");
   Serial.print(isnan(scd41Humidity) ? "N/A " : String(scd41Humidity) + "% ");
   Serial.print("CO2: ");
-  Serial.print(scd41CO2 != 0 ? String(scd41CO2) + "ppm | " : "N/A | ");
+  Serial.print(scd41CO2Concentration != 0 ? String(scd41CO2Concentration) + "ppm | " : "N/A | ");
 
   Serial.print("SGP40 VOC: ");
   Serial.print(sgp40VocIndex != 0 ? String(sgp40VocIndex) + " | " : "N/A | ");
@@ -201,11 +204,24 @@ void printDataToSerial() {
   Serial.println();
 }
 
+void updateCloudVariables() {
+  cloud_sht45Temperature = sht45Temperature;
+  cloud_sht45Humidity = sht45Humidity;
+  cloud_scd41Temperature = scd41Temperature;
+  cloud_scd41Humidity = scd41Humidity;
+  cloud_scd41CO2Concentration = scd41CO2Concentration;
+  cloud_sgp40VocRaw = sgp40VocRaw;
+  cloud_sgp40VocIndex = sgp40VocIndex;
+  cloud_bmp180Temperature = bmp180Temperature;
+  cloud_bmp180Pressure = bmp180Pressure;
+}
+
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial) {
     delay(100);
   }
+  delay(1500);
 
   Wire.begin();
 
@@ -215,6 +231,11 @@ void setup() {
   initializeBMP180();
   initializeOLED();
   initializeLEDMatrix();
+
+  initProperties();
+  ArduinoCloud.begin(ArduinoIoTPreferredConnection);
+  setDebugMessageLevel(2);
+  ArduinoCloud.printDebugInfo();
 
   Serial.println("All devices have been initialized.");
 }
@@ -227,6 +248,9 @@ void loop() {
 
   displayData();
   printDataToSerial();
+
+  updateCloudVariables();
+  ArduinoCloud.update();
 
   if (matrix.sequenceDone()) {
     matrix.play(false);
