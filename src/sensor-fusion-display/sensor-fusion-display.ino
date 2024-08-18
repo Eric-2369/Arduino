@@ -30,6 +30,13 @@ int32_t sgp40VocIndex = 0;
 float bmp180Temperature = NAN;
 float bmp180Pressure = NAN;
 
+unsigned long lastSHT45ReadTime = 0;
+unsigned long lastSCD41ReadTime = 0;
+unsigned long lastSGP40ReadTime = 0;
+unsigned long lastBMP180ReadTime = 0;
+
+const unsigned long readInterval = 1000;
+
 void initializeSHT45() {
   sht45.begin(Wire, SHT40_I2C_ADDR_44);
   sht45.softReset();
@@ -47,19 +54,16 @@ void initializeSGP40() {
   uint16_t error = sgp40.executeSelfTest(testResult);
   if (error || testResult != 0xD400) {
     Serial.println("SGP40 self-test failed.");
-  } else {
-    Serial.println("SGP40 self-test passed.");
   }
 }
 
 void initializeBMP180() {
-  if (!bmp180.begin()) {
+  if (bmp180.begin()) {
+    bmp180.resetToDefaults();
+    bmp180.setSamplingMode(BMP180MI::MODE_UHR);
+  } else {
     Serial.println("BMP180 initialization failed.");
-    while (1)
-      ;
   }
-  bmp180.resetToDefaults();
-  bmp180.setSamplingMode(BMP180MI::MODE_UHR);
 }
 
 void initializeOLED() {
@@ -71,7 +75,7 @@ void initializeOLED() {
 void initializeLEDMatrix() {
   matrix.loadSequence(frames);
   matrix.begin();
-  matrix.play(false);
+  matrix.play(true);
 }
 
 void readSHT45Data() {
@@ -241,20 +245,31 @@ void setup() {
 }
 
 void loop() {
-  readSHT45Data();
-  readSCD41Data();
-  readSGP40Data();
-  readBMP180Data();
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastSHT45ReadTime >= readInterval) {
+    lastSHT45ReadTime = currentMillis;
+    readSHT45Data();
+  }
+
+  if (currentMillis - lastSCD41ReadTime >= readInterval) {
+    lastSCD41ReadTime = currentMillis;
+    readSCD41Data();
+  }
+
+  if (currentMillis - lastSGP40ReadTime >= readInterval) {
+    lastSGP40ReadTime = currentMillis;
+    readSGP40Data();
+  }
+
+  if (currentMillis - lastBMP180ReadTime >= readInterval) {
+    lastBMP180ReadTime = currentMillis;
+    readBMP180Data();
+  }
 
   displayData();
   printDataToSerial();
 
   updateCloudVariables();
   ArduinoCloud.update();
-
-  if (matrix.sequenceDone()) {
-    matrix.play(false);
-  }
-
-  delay(1000);
 }
