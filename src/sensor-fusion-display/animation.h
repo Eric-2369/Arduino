@@ -230,5 +230,5 @@ const unsigned long frames[][4] = {
   { 0x5,
     0xa80880,
     0x50020000,
-    0xFFFFFFFF }
+    1000 }
 };
