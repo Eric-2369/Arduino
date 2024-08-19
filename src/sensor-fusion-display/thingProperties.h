@@ -11,10 +11,15 @@ CloudRelativeHumidity cloud_sht45Humidity;
 CloudTemperatureSensor cloud_scd41Temperature;
 CloudRelativeHumidity cloud_scd41Humidity;
 CloudCounter cloud_scd41CO2Concentration;
-CloudCounter cloud_sgp40VocRaw;
-CloudCounter cloud_sgp40VocIndex;
-CloudTemperatureSensor cloud_bmp180Temperature;
-CloudPressure cloud_bmp180Pressure;
+CloudCounter cloud_sgp41VOCRaw;
+CloudCounter cloud_sgp41VOCIndex;
+CloudCounter cloud_sgp41NOXRaw;
+CloudCounter cloud_sgp41NOXIndex;
+CloudTemperatureSensor cloud_sfa30Temperature;
+CloudRelativeHumidity cloud_sfa30Humidity;
+CloudCounter cloud_sfa30CH2OConcentration;
+CloudTemperatureSensor cloud_bmp390Temperature;
+CloudPressure cloud_bmp390Pressure;
 
 void initProperties() {
   ArduinoCloud.addProperty(cloud_sht45Temperature, READ, ON_CHANGE, NULL);
@@ -22,10 +27,15 @@ void initProperties() {
   ArduinoCloud.addProperty(cloud_scd41Temperature, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(cloud_scd41Humidity, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(cloud_scd41CO2Concentration, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sgp40VocRaw, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sgp40VocIndex, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_bmp180Temperature, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_bmp180Pressure, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41VOCRaw, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41VOCIndex, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41NOXRaw, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41NOXIndex, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_sfa30Temperature, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_sfa30Humidity, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_sfa30CH2OConcentration, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_bmp390Temperature, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_bmp390Pressure, READ, ON_CHANGE, NULL);
 }
 
 WiFiConnectionHandler ArduinoIoTPreferredConnection(SSID, PASS);

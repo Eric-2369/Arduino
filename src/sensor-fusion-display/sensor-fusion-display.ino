@@ -5,35 +5,47 @@
 #include <Wire.h>
 #include <SensirionI2cSht4x.h>
 #include <SensirionI2CScd4x.h>
-#include <SensirionI2CSgp40.h>
-#include <BMP180I2C.h>
+#include <SensirionI2CSgp41.h>
+#include <SensirionI2CSfa3x.h>
+#include <Adafruit_BMP3XX.h>
 #include <U8g2lib.h>
 #include <Arduino_LED_Matrix.h>
 #include "animation.h"
 #include <VOCGasIndexAlgorithm.h>
+#include <NOxGasIndexAlgorithm.h>
 
 SensirionI2cSht4x sht45;
 SensirionI2CScd4x scd41;
-SensirionI2CSgp40 sgp40;
-BMP180I2C bmp180(0x77);
+SensirionI2CSgp41 sgp41;
+SensirionI2CSfa3x sfa30;
+Adafruit_BMP3XX bmp390;
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 ArduinoLEDMatrix matrix;
 VOCGasIndexAlgorithm vocAlgorithm;
+NOxGasIndexAlgorithm noxAlgorithm;
 
 float sht45Temperature = NAN;
 float sht45Humidity = NAN;
 float scd41Temperature = NAN;
 float scd41Humidity = NAN;
 uint16_t scd41CO2Concentration = 0;
-uint16_t sgp40VocRaw = 0;
-int32_t sgp40VocIndex = 0;
-float bmp180Temperature = NAN;
-float bmp180Pressure = NAN;
+uint16_t sgp41VOCRaw = 0;
+int32_t sgp41VOCIndex = 0;
+uint16_t sgp41NOXRaw = 0;
+int32_t sgp41NOXIndex = 0;
+float sfa30Temperature = NAN;
+float sfa30Humidity = NAN;
+float sfa30CH2OConcentration = NAN;
+float bmp390Temperature = NAN;
+float bmp390Pressure = NAN;
+
+uint16_t sgp41ConditioningTime = 5;
 
 unsigned long lastSHT45ReadTime = 0;
 unsigned long lastSCD41ReadTime = 0;
-unsigned long lastSGP40ReadTime = 0;
-unsigned long lastBMP180ReadTime = 0;
+unsigned long lastSGP41ReadTime = 0;
+unsigned long lastSFA30ReadTime = 0;
+unsigned long lastBMP390ReadTime = 0;
 
 const unsigned long readInterval = 1000;
 
@@ -48,21 +60,31 @@ void initializeSCD41() {
   scd41.startPeriodicMeasurement();
 }
 
-void initializeSGP40() {
-  sgp40.begin(Wire);
+void initializeSGP41() {
+  sgp41.begin(Wire);
   uint16_t testResult;
-  uint16_t error = sgp40.executeSelfTest(testResult);
+  uint16_t error = sgp41.executeSelfTest(testResult);
   if (error || testResult != 0xD400) {
-    Serial.println("SGP40 self-test failed.");
+    Serial.println("SGP41 initialization failed.");
   }
 }
 
-void initializeBMP180() {
-  if (bmp180.begin()) {
-    bmp180.resetToDefaults();
-    bmp180.setSamplingMode(BMP180MI::MODE_UHR);
+void initializeSFA30() {
+  sfa30.begin(Wire);
+  uint16_t error = sfa30.startContinuousMeasurement();
+  if (error) {
+    Serial.println("SFA30 initialization failed.");
+  }
+}
+
+void initializeBMP390() {
+  if (bmp390.begin_I2C()) {
+    bmp390.setPressureOversampling(BMP3_OVERSAMPLING_16X);
+    bmp390.setTemperatureOversampling(BMP3_OVERSAMPLING_2X);
+    bmp390.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
+    bmp390.setOutputDataRate(BMP3_ODR_12_5_HZ);
   } else {
-    Serial.println("BMP180 initialization failed.");
+    Serial.println("BMP390 initialization failed.");
   }
 }
 
@@ -91,25 +113,25 @@ void readSHT45Data() {
 }
 
 void readSCD41Data() {
-  uint16_t tempCO2Concentration = 0;
   float tempScd41Temperature = 0.0f;
   float tempScd41Humidity = 0.0f;
+  uint16_t tempCO2Concentration = 0;
   bool isDataReady = false;
   scd41.getDataReadyFlag(isDataReady);
   if (isDataReady) {
     uint16_t scd41Error = scd41.readMeasurement(tempCO2Concentration, tempScd41Temperature, tempScd41Humidity);
     if (scd41Error == 0 && tempCO2Concentration != 0) {
-      scd41CO2Concentration = tempCO2Concentration;
       scd41Temperature = tempScd41Temperature;
       scd41Humidity = tempScd41Humidity;
+      scd41CO2Concentration = tempCO2Concentration;
     } else {
-      Serial.println("SCD41 measurement error or invalid sample.");
+      Serial.println("SCD41 measurement error.");
     }
   }
 }
 
-void readSGP40Data() {
-  uint16_t sgp40Error;
+void readSGP41Data() {
+  uint16_t sgp41Error;
   uint16_t defaultRh = 0x8000;
   uint16_t defaultT = 0x6666;
   uint16_t compensationRh = 0;
@@ -123,33 +145,42 @@ void readSGP40Data() {
     compensationT = defaultT;
   }
 
-  uint16_t tempVocRaw = 0;
-  sgp40Error = sgp40.measureRawSignal(compensationRh, compensationT, tempVocRaw);
-  if (sgp40Error == 0) {
-    sgp40VocRaw = tempVocRaw;
-    sgp40VocIndex = vocAlgorithm.process(sgp40VocRaw);
+  if (sgp41ConditioningTime > 0) {
+    sgp41Error = sgp41.executeConditioning(compensationRh, compensationT, sgp41VOCRaw);
+    sgp41ConditioningTime--;
   } else {
-    Serial.println("SGP40 measurement error.");
+    sgp41Error = sgp41.measureRawSignals(compensationRh, compensationT, sgp41VOCRaw, sgp41NOXRaw);
+  }
+
+  if (sgp41Error == 0) {
+    sgp41VOCIndex = vocAlgorithm.process(sgp41VOCRaw);
+    sgp41NOXIndex = noxAlgorithm.process(sgp41NOXRaw);
+  } else {
+    Serial.println("SGP41 measurement error.");
   }
 }
 
-void readBMP180Data() {
-  if (bmp180.measureTemperature()) {
-    while (!bmp180.hasValue()) {
-      delay(100);
-    }
-    bmp180Temperature = bmp180.getTemperature();
+void readSFA30Data() {
+  uint16_t error;
+  int16_t temperature;
+  int16_t humidity;
+  int16_t concentration;
+  error = sfa30.readMeasuredValues(concentration, humidity, temperature);
+  if (error) {
+    Serial.println("SFA30 measurement error.");
   } else {
-    Serial.println("BMP180 temperature measurement error.");
+    sfa30Temperature = temperature / 200.0;
+    sfa30Humidity = humidity / 100.0;
+    sfa30CH2OConcentration = concentration / 5.0;
   }
+}
 
-  if (bmp180.measurePressure()) {
-    while (!bmp180.hasValue()) {
-      delay(100);
-    }
-    bmp180Pressure = bmp180.getPressure();
+void readBMP390Data() {
+  if (bmp390.performReading()) {
+    bmp390Temperature = bmp390.temperature;
+    bmp390Pressure = bmp390.pressure / 1000.0;
   } else {
-    Serial.println("BMP180 pressure measurement error.");
+    Serial.println("BMP390 measurement error.");
   }
 }
 
@@ -174,13 +205,21 @@ void displayData() {
     u8g2.print(scd41CO2Concentration != 0 ? String(scd41CO2Concentration) + "ppm" : "N/A");
 
     u8g2.setCursor(0, 30);
-    u8g2.print("SGP40 VOC ");
-    u8g2.print(sgp40VocIndex != 0 ? String(sgp40VocIndex) : "N/A");
+    u8g2.print("SGP41 VOC ");
+    u8g2.print(sgp41VOCIndex != 0 ? String(sgp41VOCIndex) : "N/A ");
+    u8g2.print(" NOX ");
+    u8g2.print(sgp41NOXIndex != 0 ? String(sgp41NOXIndex) : "N/A");
 
     u8g2.setCursor(0, 40);
-    u8g2.print("BMP180 ");
-    u8g2.print(isnan(bmp180Temperature) ? "N/A " : String(bmp180Temperature, 1) + "C ");
-    u8g2.print(isnan(bmp180Pressure) ? "N/A" : String(bmp180Pressure / 1000.0, 3) + "kPa");
+    u8g2.print("SFA30 CH2O ");
+    //     u8g2.print(isnan(sfa30Temperature) ? "N/A " : String(sfa30Temperature) + "C ");
+    //     u8g2.print(isnan(sfa30Humidity) ? "N/A " : String(sfa30Humidity) + "% ");
+    u8g2.print(isnan(sfa30CH2OConcentration) ? "N/A" : String(sfa30CH2OConcentration) + "ppb");
+
+    u8g2.setCursor(0, 50);
+    u8g2.print("BMP390 ");
+    u8g2.print(isnan(bmp390Temperature) ? "N/A " : String(bmp390Temperature) + "C ");
+    u8g2.print(isnan(bmp390Pressure) ? "N/A" : String(bmp390Pressure, 3) + "kPa");
   } while (u8g2.nextPage());
 }
 
@@ -194,18 +233,25 @@ void printDataToSerial() {
   Serial.print(isnan(scd41Temperature) ? "N/A " : String(scd41Temperature) + "C ");
   Serial.print("Humidity: ");
   Serial.print(isnan(scd41Humidity) ? "N/A " : String(scd41Humidity) + "% ");
-  Serial.print("CO2: ");
+  Serial.print("CO2 Concentration: ");
   Serial.print(scd41CO2Concentration != 0 ? String(scd41CO2Concentration) + "ppm | " : "N/A | ");
 
-  Serial.print("SGP40 VOC: ");
-  Serial.print(sgp40VocIndex != 0 ? String(sgp40VocIndex) + " | " : "N/A | ");
+  Serial.print("SGP41 VOC Index: ");
+  Serial.print(sgp41VOCIndex != 0 ? String(sgp41VOCIndex) + " | " : "N/A | ");
+  Serial.print("SGP41 NOX Index: ");
+  Serial.print(sgp41NOXIndex != 0 ? String(sgp41NOXIndex) + " | " : "N/A | ");
 
-  Serial.print("BMP180 Temperature: ");
-  Serial.print(isnan(bmp180Temperature) ? "N/A " : String(bmp180Temperature, 1) + "C ");
+  Serial.print("SFA30 Temperature: ");
+  Serial.print(isnan(sfa30Temperature) ? "N/A " : String(sfa30Temperature) + "C ");
+  Serial.print("Humidity: ");
+  Serial.print(isnan(sfa30Humidity) ? "N/A " : String(sfa30Humidity) + "% ");
+  Serial.print("CH2O Concentration: ");
+  Serial.println(isnan(sfa30CH2OConcentration) ? "N/A" : String(sfa30CH2OConcentration) + "ppb | ");
+
+  Serial.print("BMP390 Temperature: ");
+  Serial.print(isnan(bmp390Temperature) ? "N/A " : String(bmp390Temperature) + "C ");
   Serial.print("Pressure: ");
-  Serial.print(isnan(bmp180Pressure) ? "N/A" : String(bmp180Pressure / 1000.0, 3) + "kPa");
-
-  Serial.println();
+  Serial.print(isnan(bmp390Pressure) ? "N/A | " : String(bmp390Pressure, 3) + "kPa");
 }
 
 void updateCloudVariables() {
@@ -214,10 +260,15 @@ void updateCloudVariables() {
   cloud_scd41Temperature = scd41Temperature;
   cloud_scd41Humidity = scd41Humidity;
   cloud_scd41CO2Concentration = scd41CO2Concentration;
-  cloud_sgp40VocRaw = sgp40VocRaw;
-  cloud_sgp40VocIndex = sgp40VocIndex;
-  cloud_bmp180Temperature = bmp180Temperature;
-  cloud_bmp180Pressure = bmp180Pressure;
+  cloud_sgp41VOCRaw = sgp41VOCRaw;
+  cloud_sgp41VOCIndex = sgp41VOCIndex;
+  cloud_sgp41NOXRaw = sgp41NOXRaw;
+  cloud_sgp41NOXIndex = sgp41NOXIndex;
+  cloud_sfa30Temperature = sfa30Temperature;
+  cloud_sfa30Humidity = sfa30Humidity;
+  cloud_sfa30CH2OConcentration = sfa30CH2OConcentration;
+  cloud_bmp390Temperature = bmp390Temperature;
+  cloud_bmp390Pressure = bmp390Pressure;
 }
 
 void setup() {
@@ -231,8 +282,9 @@ void setup() {
 
   initializeSHT45();
   initializeSCD41();
-  initializeSGP40();
-  initializeBMP180();
+  initializeSGP41();
+  initializeSFA30();
+  initializeBMP390();
   initializeOLED();
   initializeLEDMatrix();
 
@@ -257,14 +309,19 @@ void loop() {
     readSCD41Data();
   }
 
-  if (currentMillis - lastSGP40ReadTime >= readInterval) {
-    lastSGP40ReadTime = currentMillis;
-    readSGP40Data();
+  if (currentMillis - lastSGP41ReadTime >= readInterval) {
+    lastSGP41ReadTime = currentMillis;
+    readSGP41Data();
   }
 
-  if (currentMillis - lastBMP180ReadTime >= readInterval) {
-    lastBMP180ReadTime = currentMillis;
-    readBMP180Data();
+  if (currentMillis - lastSFA30ReadTime >= readInterval) {
+    lastSFA30ReadTime = currentMillis;
+    readSFA30Data();
+  }
+
+  if (currentMillis - lastBMP390ReadTime >= readInterval) {
+    lastBMP390ReadTime = currentMillis;
+    readBMP390Data();
   }
 
   displayData();
