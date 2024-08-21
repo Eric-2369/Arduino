@@ -82,7 +82,7 @@ void initializeBMP390() {
     bmp390.setPressureOversampling(BMP3_OVERSAMPLING_16X);
     bmp390.setTemperatureOversampling(BMP3_OVERSAMPLING_2X);
     bmp390.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
-    bmp390.setOutputDataRate(BMP3_ODR_12_5_HZ);
+    bmp390.setOutputDataRate(BMP3_ODR_25_HZ);
   } else {
     Serial.println("BMP390 initialization failed.");
   }
@@ -166,12 +166,12 @@ void readSFA30Data() {
   int16_t humidity;
   int16_t concentration;
   error = sfa30.readMeasuredValues(concentration, humidity, temperature);
-  if (error) {
-    Serial.println("SFA30 measurement error.");
-  } else {
+  if (error == 0) {
     sfa30Temperature = temperature / 200.0;
     sfa30Humidity = humidity / 100.0;
     sfa30CH2OConcentration = concentration / 5.0;
+  } else {
+    Serial.println("SFA30 measurement error.");
   }
 }
 
@@ -240,7 +240,7 @@ void printDataToSerial() {
   Serial.print(scd41CO2Concentration != 0 ? String(scd41CO2Concentration) + "ppm | " : "N/A | ");
 
   Serial.print("SGP41 VOC Index: ");
-  Serial.print(sgp41VOCIndex != 0 ? String(sgp41VOCIndex) + " | " : "N/A | ");
+  Serial.print(sgp41VOCIndex != 0 ? String(sgp41VOCIndex) + " " : "N/A ");
   Serial.print("SGP41 NOX Index: ");
   Serial.print(sgp41NOXIndex != 0 ? String(sgp41NOXIndex) + " | " : "N/A | ");
 
@@ -255,6 +255,8 @@ void printDataToSerial() {
   Serial.print(isnan(bmp390Temperature) ? "N/A " : String(bmp390Temperature) + "C ");
   Serial.print("Pressure: ");
   Serial.print(isnan(bmp390Pressure) ? "N/A | " : String(bmp390Pressure, 3) + "kPa");
+
+  Serial.println();
 }
 
 void updateCloudVariables() {
