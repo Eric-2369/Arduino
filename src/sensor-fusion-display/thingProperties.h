@@ -22,20 +22,20 @@ CloudTemperatureSensor cloud_bmp390Temperature;
 CloudPressure cloud_bmp390Pressure;
 
 void initProperties() {
-  ArduinoCloud.addProperty(cloud_sht45Temperature, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sht45Humidity, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_scd41Temperature, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_scd41Humidity, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_scd41CO2Concentration, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sgp41VOCRaw, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sgp41VOCIndex, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sgp41NOXRaw, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sgp41NOXIndex, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sfa30Temperature, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sfa30Humidity, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_sfa30CH2OConcentration, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_bmp390Temperature, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cloud_bmp390Pressure, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(cloud_sht45Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sht45Humidity, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_scd41Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_scd41Humidity, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_scd41CO2Concentration, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41VOCRaw, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41VOCIndex, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41NOXRaw, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41NOXIndex, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sfa30Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sfa30Humidity, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sfa30CH2OConcentration, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_bmp390Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_bmp390Pressure, READ, 1 * SECONDS, NULL);
 }
 
 WiFiConnectionHandler ArduinoIoTPreferredConnection(SSID, PASS);

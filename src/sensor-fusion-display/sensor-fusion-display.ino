@@ -187,7 +187,7 @@ void readBMP390Data() {
 void displayData() {
   u8g2.firstPage();
   do {
-    u8g2.setFont(u8g2_font_profont12_mf);
+    u8g2.setFont(u8g2_font_profont11_mf);
     u8g2.setFontPosTop();
 
     u8g2.setCursor(0, 0);
@@ -195,31 +195,34 @@ void displayData() {
     u8g2.print(isnan(sht45Temperature) ? "N/A " : String(sht45Temperature) + "C ");
     u8g2.print(isnan(sht45Humidity) ? "N/A" : String(sht45Humidity) + "%");
 
-    u8g2.setCursor(0, 10);
+    u8g2.setCursor(0, 9);
     u8g2.print("SCD41 ");
     u8g2.print(isnan(scd41Temperature) ? "N/A " : String(scd41Temperature) + "C ");
     u8g2.print(isnan(scd41Humidity) ? "N/A" : String(scd41Humidity) + "%");
 
-    u8g2.setCursor(0, 20);
+    u8g2.setCursor(0, 18);
     u8g2.print("SCD41 CO2 ");
-    u8g2.print(scd41CO2Concentration != 0 ? String(scd41CO2Concentration) + "ppm" : "N/A");
+    u8g2.print(scd41CO2Concentration != 0 ? String(scd41CO2Concentration) + "PPM" : "N/A");
 
-    u8g2.setCursor(0, 30);
+    u8g2.setCursor(0, 27);
     u8g2.print("SGP41 VOC ");
-    u8g2.print(sgp41VOCIndex != 0 ? String(sgp41VOCIndex) : "N/A ");
+    u8g2.print(sgp41VOCIndex != 0 ? String(sgp41VOCIndex) : "N/A");
     u8g2.print(" NOX ");
     u8g2.print(sgp41NOXIndex != 0 ? String(sgp41NOXIndex) : "N/A");
 
-    u8g2.setCursor(0, 40);
-    u8g2.print("SFA30 CH2O ");
-    //     u8g2.print(isnan(sfa30Temperature) ? "N/A " : String(sfa30Temperature) + "C ");
-    //     u8g2.print(isnan(sfa30Humidity) ? "N/A " : String(sfa30Humidity) + "% ");
-    u8g2.print(isnan(sfa30CH2OConcentration) ? "N/A" : String(sfa30CH2OConcentration) + "ppb");
+    u8g2.setCursor(0, 36);
+    u8g2.print("SFA30 ");
+    u8g2.print(isnan(sfa30Temperature) ? "N/A " : String(sfa30Temperature) + "C ");
+    u8g2.print(isnan(sfa30Humidity) ? "N/A " : String(sfa30Humidity) + "%");
 
-    u8g2.setCursor(0, 50);
+    u8g2.setCursor(0, 45);
+    u8g2.print("SFA30 CH2O ");
+    u8g2.print(isnan(sfa30CH2OConcentration) ? "N/A" : String(sfa30CH2OConcentration) + "PPB");
+
+    u8g2.setCursor(0, 54);
     u8g2.print("BMP390 ");
     u8g2.print(isnan(bmp390Temperature) ? "N/A " : String(bmp390Temperature) + "C ");
-    u8g2.print(isnan(bmp390Pressure) ? "N/A" : String(bmp390Pressure, 3) + "kPa");
+    u8g2.print(isnan(bmp390Pressure) ? "N/A" : String(bmp390Pressure, 2) + "KPA");
   } while (u8g2.nextPage());
 }
 
