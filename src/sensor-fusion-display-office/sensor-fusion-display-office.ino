@@ -145,7 +145,6 @@ void printDataToSerial() {
   Serial.print("Humidity: ");
   Serial.print(isnan(sht30Humidity) ? "N/A | " : String(sht30Humidity) + "% | ");
 
-
   Serial.print("SCD40 Temperature: ");
   Serial.print(isnan(scd40Temperature) ? "N/A " : String(scd40Temperature) + "C ");
   Serial.print("Humidity: ");

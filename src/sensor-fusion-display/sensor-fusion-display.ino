@@ -95,8 +95,8 @@ void initializeOLED() {
 }
 
 void initializeLEDMatrix() {
-  matrix.loadSequence(frames);
   matrix.begin();
+  matrix.loadSequence(frames);
   matrix.play(true);
 }
 
@@ -259,6 +259,24 @@ void printDataToSerial() {
   Serial.println();
 }
 
+void initializeCloudVariables() {
+  cloud_displayControl = true;
+  cloud_sht45Temperature = 0.0;
+  cloud_sht45Humidity = 0.0;
+  cloud_scd41Temperature = 0.0;
+  cloud_scd41Humidity = 0.0;
+  cloud_scd41CO2Concentration = 0;
+  cloud_sgp41VOCRaw = 0;
+  cloud_sgp41VOCIndex = 0;
+  cloud_sgp41NOXRaw = 0;
+  cloud_sgp41NOXIndex = 0;
+  cloud_sfa30Temperature = 0.0;
+  cloud_sfa30Humidity = 0.0;
+  cloud_sfa30CH2OConcentration = 0.0;
+  cloud_bmp390Temperature = 0.0;
+  cloud_bmp390Pressure = 0.0;
+}
+
 void updateCloudVariables() {
   cloud_sht45Temperature = sht45Temperature;
   cloud_sht45Humidity = sht45Humidity;
@@ -274,6 +292,15 @@ void updateCloudVariables() {
   cloud_sfa30CH2OConcentration = sfa30CH2OConcentration;
   cloud_bmp390Temperature = bmp390Temperature;
   cloud_bmp390Pressure = bmp390Pressure;
+}
+
+void onCloudDisplayControlChange() {
+  if (cloud_displayControl) {
+    matrix.loadSequence(frames);
+    matrix.play(true);
+  } else {
+    matrix.clear();
+  }
 }
 
 void setup() {
@@ -297,6 +324,7 @@ void setup() {
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
   setDebugMessageLevel(2);
   ArduinoCloud.printDebugInfo();
+  initializeCloudVariables();
 
   Serial.println("All devices have been initialized.");
 }
@@ -330,7 +358,10 @@ void loop() {
   }
 
   displayData();
-  printDataToSerial();
+
+  if (cloud_displayControl) {
+    printDataToSerial();
+  }
 
   updateCloudVariables();
   ArduinoCloud.update();
