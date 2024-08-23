@@ -23,6 +23,7 @@ CloudRelativeHumidity cloud_sfa30Humidity;
 CloudCounter cloud_sfa30CH2OConcentration;
 CloudTemperatureSensor cloud_bmp390Temperature;
 CloudPressure cloud_bmp390Pressure;
+CloudIlluminance cloud_tsl2561Illuminance;
 
 void initProperties() {
   ArduinoCloud.addProperty(cloud_displayControl, READWRITE, 1 * SECONDS, onCloudDisplayControlChange);
@@ -40,6 +41,7 @@ void initProperties() {
   ArduinoCloud.addProperty(cloud_sfa30CH2OConcentration, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_bmp390Temperature, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_bmp390Pressure, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_tsl2561Illuminance, READ, 1 * SECONDS, NULL);
 }
 
 WiFiConnectionHandler ArduinoIoTPreferredConnection(SSID, PASS);
