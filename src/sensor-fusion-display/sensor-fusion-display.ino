@@ -127,16 +127,16 @@ void readSHT45Data() {
 }
 
 void readSCD41Data() {
-  float tempScd41Temperature = 0.0f;
-  float tempScd41Humidity = 0.0f;
+  float tempSCD41Temperature = 0.0f;
+  float tempSCD41Humidity = 0.0f;
   uint16_t tempCO2Concentration = 0;
   bool isDataReady = false;
   scd41.getDataReadyFlag(isDataReady);
   if (isDataReady) {
-    uint16_t scd41Error = scd41.readMeasurement(tempCO2Concentration, tempScd41Temperature, tempScd41Humidity);
+    uint16_t scd41Error = scd41.readMeasurement(tempCO2Concentration, tempSCD41Temperature, tempSCD41Humidity);
     if (scd41Error == 0 && tempCO2Concentration != 0) {
-      scd41Temperature = tempScd41Temperature;
-      scd41Humidity = tempScd41Humidity;
+      scd41Temperature = tempSCD41Temperature;
+      scd41Humidity = tempSCD41Humidity;
       scd41CO2Concentration = tempCO2Concentration;
     } else {
       Serial.println("SCD41 measurement error.");
@@ -208,7 +208,7 @@ void readTSL2561Data() {
   }
 }
 
-void displayData() {
+void displayDataOnScreen() {
   u8g2.firstPage();
   do {
     u8g2.setFont(u8g2_font_profont11_mf);
@@ -255,7 +255,7 @@ void displayData() {
   } while (u8g2.nextPage());
 }
 
-void printDataToSerial() {
+void displayDataOnSerial() {
   Serial.print("SHT45 Temperature: ");
   Serial.print(isnan(sht45Temperature) ? "N/A " : String(sht45Temperature) + "C ");
   Serial.print("Humidity: ");
@@ -399,8 +399,8 @@ void loop() {
   }
 
   if (cloud_displayControl) {
-    displayData();
-    printDataToSerial();
+    displayDataOnScreen();
+    displayDataOnSerial();
   }
 
   updateCloudVariables();

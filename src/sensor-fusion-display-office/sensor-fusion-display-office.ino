@@ -3,45 +3,52 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <SensirionI2cSht3x.h>
+#include <SensirionI2cSht4x.h>
 #include <SensirionI2CScd4x.h>
 #include <SensirionI2CSgp40.h>
+#include <WZ.h>
 #include <Adafruit_BMP3XX.h>
+#include <Adafruit_TSL2561_U.h>
+#include <LiquidCrystal_PCF8574.h>
 #include <Arduino_LED_Matrix.h>
 #include "animation.h"
 #include <VOCGasIndexAlgorithm.h>
 
-SensirionI2cSht3x sht30;
+SensirionI2cSht4x sht40;
 SensirionI2CScd4x scd40;
 SensirionI2CSgp40 sgp40;
+WZ wz(Serial1);
 Adafruit_BMP3XX bmp390;
+Adafruit_TSL2561_Unified tsl2561 = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
+LiquidCrystal_PCF8574 lcd(0x27);
 ArduinoLEDMatrix matrix;
 VOCGasIndexAlgorithm vocAlgorithm;
 
-float sht30Temperature = NAN;
-float sht30Humidity = NAN;
+
+float sht40Temperature = NAN;
+float sht40Humidity = NAN;
 float scd40Temperature = NAN;
 float scd40Humidity = NAN;
 uint16_t scd40CO2Concentration = 0;
 uint16_t sgp40VOCRaw = 0;
 int32_t sgp40VOCIndex = 0;
+float wzCH2OConcentration = NAN;
 float bmp390Temperature = NAN;
 float bmp390Pressure = NAN;
+float tsl2561Illuminance = NAN;
 
-unsigned long lastSHT30ReadTime = 0;
+unsigned long lastSHT40ReadTime = 0;
 unsigned long lastSCD40ReadTime = 0;
 unsigned long lastSGP40ReadTime = 0;
+unsigned long lastWZReadTime = 0;
 unsigned long lastBMP390ReadTime = 0;
+unsigned long lastTSL2561ReadTime = 0;
 
 const unsigned long readInterval = 1000;
 
-void initializeSHT30() {
-  sht30.begin(Wire, SHT30_I2C_ADDR_44);
-  sht30.stopMeasurement();
-  delay(1);
-  sht30.softReset();
-  delay(100);
-  sht30.startPeriodicMeasurement(REPEATABILITY_HIGH, MPS_ONE_PER_SECOND);
+void initializeSHT40() {
+  sht40.begin(Wire, SHT40_I2C_ADDR_44);
+  sht40.softReset();
 }
 
 void initializeSCD40() {
@@ -59,6 +66,11 @@ void initializeSGP40() {
   }
 }
 
+void initializeWZ() {
+  Serial1.begin(9600);
+  wz.passiveMode();
+}
+
 void initializeBMP390() {
   if (bmp390.begin_I2C()) {
     bmp390.setPressureOversampling(BMP3_OVERSAMPLING_16X);
@@ -70,21 +82,38 @@ void initializeBMP390() {
   }
 }
 
+void initializeTSL2561() {
+  if (tsl2561.begin()) {
+    tsl2561.enableAutoRange(false);
+    tsl2561.setGain(TSL2561_GAIN_16X);
+    tsl2561.setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);
+  } else {
+    Serial.println("TSL2561 initialization failed.");
+  }
+}
+
+void initializeLCD() {
+  lcd.begin(16, 2);
+  lcd.setBacklight(128);
+  lcd.home();
+  lcd.clear();
+}
+
 void initializeLEDMatrix() {
-  matrix.loadSequence(frames);
   matrix.begin();
+  matrix.loadSequence(frames);
   matrix.play(true);
 }
 
-void readSHT30Data() {
+void readSHT40Data() {
   float tempTemperature = 0.0;
   float tempHumidity = 0.0;
-  int16_t sht30Error = sht30.blockingReadMeasurement(tempTemperature, tempHumidity);
-  if (sht30Error == NO_ERROR) {
-    sht30Temperature = tempTemperature;
-    sht30Humidity = tempHumidity;
+  int16_t sht40Error = sht40.measureHighPrecision(tempTemperature, tempHumidity);
+  if (sht40Error == 0) {
+    sht40Temperature = tempTemperature;
+    sht40Humidity = tempHumidity;
   } else {
-    Serial.println("SHT30 measurement error.");
+    Serial.println("SHT40 measurement error.");
   }
 }
 
@@ -108,17 +137,17 @@ void readSCD40Data() {
 
 void readSGP40Data() {
   uint16_t sgp40Error;
-  uint16_t defaultRh = 0x8000;
   uint16_t defaultT = 0x6666;
-  uint16_t compensationRh = 0;
+  uint16_t defaultRh = 0x8000;
   uint16_t compensationT = 0;
+  uint16_t compensationRh = 0;
 
-  if (!isnan(sht30Temperature) && !isnan(sht30Humidity)) {
-    compensationT = static_cast<uint16_t>((sht30Temperature + 45) * 65535 / 175);
-    compensationRh = static_cast<uint16_t>(sht30Humidity * 65535 / 100);
+  if (!isnan(sht40Temperature) && !isnan(sht40Humidity)) {
+    compensationT = static_cast<uint16_t>((sht40Temperature + 45) * 65535 / 175);
+    compensationRh = static_cast<uint16_t>(sht40Humidity * 65535 / 100);
   } else {
-    compensationRh = defaultRh;
     compensationT = defaultT;
+    compensationRh = defaultRh;
   }
 
   sgp40Error = sgp40.measureRawSignal(compensationRh, compensationT, sgp40VOCRaw);
@@ -127,6 +156,16 @@ void readSGP40Data() {
     sgp40VOCIndex = vocAlgorithm.process(sgp40VOCRaw);
   } else {
     Serial.println("SGP40 measurement error.");
+  }
+}
+
+void readWZData() {
+  WZ::DATA ch2oData;
+  wz.requestRead();
+  if (wz.readUntil(ch2oData)) {
+    wzCH2OConcentration = ch2oData.HCHO_PPB;
+  } else {
+    Serial.println("WZ measurement error.");
   }
 }
 
@@ -139,40 +178,93 @@ void readBMP390Data() {
   }
 }
 
-void printDataToSerial() {
-  Serial.print("SHT30 Temperature: ");
-  Serial.print(isnan(sht30Temperature) ? "N/A " : String(sht30Temperature) + "C ");
+void readTSL2561Data() {
+  sensors_event_t event;
+  tsl2561.getEvent(&event);
+  if (event.light) {
+    tsl2561Illuminance = event.light;
+  } else {
+    Serial.println("TSL2561 measurement error.");
+  }
+}
+
+void displayDataOnScreen() {
+  lcd.setCursor(0, 0);
+  lcd.print(isnan(sht40Temperature) ? "N/A " : String(sht40Temperature) + "C ");
+  lcd.print(isnan(sht40Humidity) ? "N/A " : String(sht40Humidity) + "% ");
+  lcd.print(scd40CO2Concentration != 0 ? String(scd40CO2Concentration) + "PPM" : "N/A");
+
+  lcd.setCursor(0, 1);
+  lcd.print(sgp40VOCIndex != 0 ? String(sgp40VOCIndex) + " " : "N/A ");
+  lcd.print(isnan(wzCH2OConcentration) ? "N/A " : String(wzCH2OConcentration, 0) + "PPB ");
+}
+
+void displayDataOnSerial() {
+  Serial.print("SHT40 Temperature: ");
+  Serial.print(isnan(sht40Temperature) ? "N/A " : String(sht40Temperature) + "C ");
   Serial.print("Humidity: ");
-  Serial.print(isnan(sht30Humidity) ? "N/A | " : String(sht30Humidity) + "% | ");
+  Serial.print(isnan(sht40Humidity) ? "N/A | " : String(sht40Humidity) + "% | ");
 
   Serial.print("SCD40 Temperature: ");
   Serial.print(isnan(scd40Temperature) ? "N/A " : String(scd40Temperature) + "C ");
   Serial.print("Humidity: ");
   Serial.print(isnan(scd40Humidity) ? "N/A " : String(scd40Humidity) + "% ");
   Serial.print("CO2 Concentration: ");
-  Serial.print(scd40CO2Concentration != 0 ? String(scd40CO2Concentration) + "ppm | " : "N/A | ");
+  Serial.print(scd40CO2Concentration == 0 ? "N/A | " : String(scd40CO2Concentration) + "ppm | ");
 
   Serial.print("SGP40 VOC Index: ");
-  Serial.print(sgp40VOCIndex != 0 ? String(sgp40VOCIndex) + " | " : "N/A | ");
+  Serial.print(sgp40VOCIndex == 0 ? "N/A | " : String(sgp40VOCIndex) + " | ");
+
+  Serial.print("WZ CH2O Concentration: ");
+  Serial.print(isnan(wzCH2OConcentration) ? "N/A | " : String(wzCH2OConcentration) + "ppb | ");
 
   Serial.print("BMP390 Temperature: ");
   Serial.print(isnan(bmp390Temperature) ? "N/A " : String(bmp390Temperature) + "C ");
   Serial.print("Pressure: ");
-  Serial.print(isnan(bmp390Pressure) ? "N/A | " : String(bmp390Pressure, 3) + "kPa");
+  Serial.print(isnan(bmp390Pressure) ? "N/A | " : String(bmp390Pressure, 3) + "kPa | ");
+
+  Serial.print("TSL2561 Illuminance: ");
+  Serial.print(isnan(tsl2561Illuminance) ? "N/A" : String(tsl2561Illuminance) + "lx");
 
   Serial.println();
 }
 
+void initializeCloudVariables() {
+  cloud_displayControl = true;
+  cloud_sht40Temperature = 0.0;
+  cloud_sht40Humidity = 0.0;
+  cloud_scd40Temperature = 0.0;
+  cloud_scd40Humidity = 0.0;
+  cloud_scd40CO2Concentration = 0;
+  cloud_sgp40VOCRaw = 0;
+  cloud_sgp40VOCIndex = 0;
+  cloud_wzCH2OConcentration = 0.0;
+  cloud_bmp390Temperature = 0.0;
+  cloud_bmp390Pressure = 0.0;
+  cloud_tsl2561Illuminance = 0.0;
+}
+
 void updateCloudVariables() {
-  cloud_sht30Temperature = sht30Temperature;
-  cloud_sht30Humidity = sht30Humidity;
+  cloud_sht40Temperature = sht40Temperature;
+  cloud_sht40Humidity = sht40Humidity;
   cloud_scd40Temperature = scd40Temperature;
   cloud_scd40Humidity = scd40Humidity;
   cloud_scd40CO2Concentration = scd40CO2Concentration;
   cloud_sgp40VOCRaw = sgp40VOCRaw;
   cloud_sgp40VOCIndex = sgp40VOCIndex;
+  cloud_wzCH2OConcentration = wzCH2OConcentration;
   cloud_bmp390Temperature = bmp390Temperature;
   cloud_bmp390Pressure = bmp390Pressure;
+  cloud_tsl2561Illuminance = tsl2561Illuminance;
+}
+
+void onCloudDisplayControlChange() {
+  if (cloud_displayControl) {
+    matrix.loadSequence(frames);
+    matrix.play(true);
+  } else {
+    matrix.clear();
+  }
 }
 
 void setup() {
@@ -184,15 +276,18 @@ void setup() {
 
   Wire.begin();
 
-  initializeSHT30();
+  initializeSHT40();
   initializeSCD40();
   initializeSGP40();
+  initializeWZ();
   initializeBMP390();
+  initializeTSL2561();
+  initializeLCD();
   initializeLEDMatrix();
 
   initProperties();
+  initializeCloudVariables();
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
-  setDebugMessageLevel(2);
   ArduinoCloud.printDebugInfo();
 
   Serial.println("All devices have been initialized.");
@@ -201,9 +296,9 @@ void setup() {
 void loop() {
   unsigned long currentMillis = millis();
 
-  if (currentMillis - lastSHT30ReadTime >= readInterval) {
-    lastSHT30ReadTime = currentMillis;
-    readSHT30Data();
+  if (currentMillis - lastSHT40ReadTime >= readInterval) {
+    lastSHT40ReadTime = currentMillis;
+    readSHT40Data();
   }
 
   if (currentMillis - lastSCD40ReadTime >= readInterval) {
@@ -216,12 +311,25 @@ void loop() {
     readSGP40Data();
   }
 
+  if (currentMillis - lastWZReadTime >= readInterval) {
+    lastWZReadTime = currentMillis;
+    readWZData();
+  }
+
   if (currentMillis - lastBMP390ReadTime >= readInterval) {
     lastBMP390ReadTime = currentMillis;
     readBMP390Data();
   }
 
-  printDataToSerial();
+  if (currentMillis - lastTSL2561ReadTime >= readInterval) {
+    lastTSL2561ReadTime = currentMillis;
+    readTSL2561Data();
+  }
+
+  if (cloud_displayControl) {
+    displayDataOnScreen();
+    displayDataOnSerial();
+  }
 
   updateCloudVariables();
   ArduinoCloud.update();
