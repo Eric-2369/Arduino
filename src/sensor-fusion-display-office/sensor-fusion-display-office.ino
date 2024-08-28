@@ -62,7 +62,7 @@ void initializeSGP40() {
   uint16_t testResult;
   uint16_t error = sgp40.executeSelfTest(testResult);
   if (error || testResult != 0xD400) {
-    Serial.println("SGP40 initialization failed.");
+    Serial.println(F("SGP40 initialization failed."));
   }
 }
 
@@ -78,7 +78,7 @@ void initializeBMP390() {
     bmp390.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
     bmp390.setOutputDataRate(BMP3_ODR_25_HZ);
   } else {
-    Serial.println("BMP390 initialization failed.");
+    Serial.println(F("BMP390 initialization failed."));
   }
 }
 
@@ -88,13 +88,13 @@ void initializeTSL2561() {
     tsl2561.setGain(TSL2561_GAIN_16X);
     tsl2561.setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);
   } else {
-    Serial.println("TSL2561 initialization failed.");
+    Serial.println(F("TSL2561 initialization failed."));
   }
 }
 
 void initializeLCD() {
   lcd.begin(16, 2);
-  lcd.setBacklight(128);
+  lcd.setBacklight(255);
   lcd.home();
   lcd.clear();
 }
@@ -113,7 +113,7 @@ void readSHT40Data() {
     sht40Temperature = tempTemperature;
     sht40Humidity = tempHumidity;
   } else {
-    Serial.println("SHT40 measurement error.");
+    Serial.println(F("SHT40 measurement error."));
   }
 }
 
@@ -130,7 +130,7 @@ void readSCD40Data() {
       scd40Humidity = tempSCD40Humidity;
       scd40CO2Concentration = tempCO2Concentration;
     } else {
-      Serial.println("SCD40 measurement error.");
+      Serial.println(F("SCD40 measurement error."));
     }
   }
 }
@@ -155,7 +155,7 @@ void readSGP40Data() {
   if (sgp40Error == 0) {
     sgp40VOCIndex = vocAlgorithm.process(sgp40VOCRaw);
   } else {
-    Serial.println("SGP40 measurement error.");
+    Serial.println(F("SGP40 measurement error."));
   }
 }
 
@@ -165,7 +165,7 @@ void readWZData() {
   if (wz.readUntil(ch2oData)) {
     wzCH2OConcentration = ch2oData.HCHO_PPB;
   } else {
-    Serial.println("WZ measurement error.");
+    Serial.println(F("WZ measurement error."));
   }
 }
 
@@ -174,7 +174,7 @@ void readBMP390Data() {
     bmp390Temperature = bmp390.temperature;
     bmp390Pressure = bmp390.pressure / 1000.0;
   } else {
-    Serial.println("BMP390 measurement error.");
+    Serial.println(F("BMP390 measurement error."));
   }
 }
 
@@ -184,19 +184,23 @@ void readTSL2561Data() {
   if (event.light) {
     tsl2561Illuminance = event.light;
   } else {
-    Serial.println("TSL2561 measurement error.");
+    Serial.println(F("TSL2561 measurement error."));
   }
 }
 
 void displayDataOnScreen() {
   lcd.setCursor(0, 0);
-  lcd.print(isnan(sht40Temperature) ? "N/A " : String(sht40Temperature) + "C ");
-  lcd.print(isnan(sht40Humidity) ? "N/A " : String(sht40Humidity) + "% ");
-  lcd.print(scd40CO2Concentration != 0 ? String(scd40CO2Concentration) + "PPM" : "N/A");
+  lcd.print(isnan(sht40Temperature) ? "N/A " : String(sht40Temperature) + " ");
+  lcd.print(isnan(sht40Humidity) ? "N/A " : String(sht40Humidity) + " ");
+  lcd.print(scd40CO2Concentration == 0 ? "N/A" : String(scd40CO2Concentration));
+  lcd.print("                ");
 
   lcd.setCursor(0, 1);
-  lcd.print(sgp40VOCIndex != 0 ? String(sgp40VOCIndex) + " " : "N/A ");
-  lcd.print(isnan(wzCH2OConcentration) ? "N/A " : String(wzCH2OConcentration, 0) + "PPB ");
+  lcd.print(sgp40VOCIndex == 0 ? "N/A " : String(sgp40VOCIndex) + " ");
+  lcd.print(isnan(wzCH2OConcentration) ? "N/A " : String(wzCH2OConcentration, 0) + " ");
+  lcd.print(isnan(bmp390Pressure) ? "N/A " : String(bmp390Pressure, 2) + " ");
+  lcd.print(isnan(tsl2561Illuminance) ? "N/A" : String(tsl2561Illuminance, 0));
+  lcd.print("                ");
 }
 
 void displayDataOnSerial() {
@@ -260,9 +264,13 @@ void updateCloudVariables() {
 
 void onCloudDisplayControlChange() {
   if (cloud_displayControl) {
+    lcd.setBacklight(255);
+    lcd.display();
     matrix.loadSequence(frames);
     matrix.play(true);
   } else {
+    lcd.setBacklight(0);
+    lcd.noDisplay();
     matrix.clear();
   }
 }
@@ -290,7 +298,7 @@ void setup() {
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
   ArduinoCloud.printDebugInfo();
 
-  Serial.println("All devices have been initialized.");
+  Serial.println(F("All devices have been initialized."));
 }
 
 void loop() {

@@ -69,7 +69,7 @@ void initializeSGP41() {
   uint16_t testResult;
   uint16_t error = sgp41.executeSelfTest(testResult);
   if (error || testResult != 0xD400) {
-    Serial.println("SGP41 initialization failed.");
+    Serial.println(F("SGP41 initialization failed."));
   }
 }
 
@@ -77,7 +77,7 @@ void initializeSFA30() {
   sfa30.begin(Wire);
   uint16_t error = sfa30.startContinuousMeasurement();
   if (error) {
-    Serial.println("SFA30 initialization failed.");
+    Serial.println(F("SFA30 initialization failed."));
   }
 }
 
@@ -88,7 +88,7 @@ void initializeBMP390() {
     bmp390.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
     bmp390.setOutputDataRate(BMP3_ODR_25_HZ);
   } else {
-    Serial.println("BMP390 initialization failed.");
+    Serial.println(F("BMP390 initialization failed."));
   }
 }
 
@@ -98,7 +98,7 @@ void initializeTSL2561() {
     tsl2561.setGain(TSL2561_GAIN_16X);
     tsl2561.setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);
   } else {
-    Serial.println("TSL2561 initialization failed.");
+    Serial.println(F("TSL2561 initialization failed."));
   }
 }
 
@@ -122,7 +122,7 @@ void readSHT45Data() {
     sht45Temperature = tempTemperature;
     sht45Humidity = tempHumidity;
   } else {
-    Serial.println("SHT45 measurement error.");
+    Serial.println(F("SHT45 measurement error."));
   }
 }
 
@@ -139,7 +139,7 @@ void readSCD41Data() {
       scd41Humidity = tempSCD41Humidity;
       scd41CO2Concentration = tempCO2Concentration;
     } else {
-      Serial.println("SCD41 measurement error.");
+      Serial.println(F("SCD41 measurement error."));
     }
   }
 }
@@ -170,7 +170,7 @@ void readSGP41Data() {
     sgp41VOCIndex = vocAlgorithm.process(sgp41VOCRaw);
     sgp41NOXIndex = noxAlgorithm.process(sgp41NOXRaw);
   } else {
-    Serial.println("SGP41 measurement error.");
+    Serial.println(F("SGP41 measurement error."));
   }
 }
 
@@ -185,7 +185,7 @@ void readSFA30Data() {
     sfa30Humidity = humidity / 100.0;
     sfa30CH2OConcentration = concentration / 5.0;
   } else {
-    Serial.println("SFA30 measurement error.");
+    Serial.println(F("SFA30 measurement error."));
   }
 }
 
@@ -194,7 +194,7 @@ void readBMP390Data() {
     bmp390Temperature = bmp390.temperature;
     bmp390Pressure = bmp390.pressure / 1000.0;
   } else {
-    Serial.println("BMP390 measurement error.");
+    Serial.println(F("BMP390 measurement error."));
   }
 }
 
@@ -204,7 +204,7 @@ void readTSL2561Data() {
   if (event.light) {
     tsl2561Illuminance = event.light;
   } else {
-    Serial.println("TSL2561 measurement error.");
+    Serial.println(F("TSL2561 measurement error."));
   }
 }
 
@@ -362,7 +362,7 @@ void setup() {
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
   ArduinoCloud.printDebugInfo();
 
-  Serial.println("All devices have been initialized.");
+  Serial.println(F("All devices have been initialized."));
 }
 
 void loop() {
