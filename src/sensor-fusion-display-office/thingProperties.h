@@ -16,7 +16,6 @@ CloudRelativeHumidity cloud_scd40Humidity;
 CloudCounter cloud_scd40CO2Concentration;
 CloudCounter cloud_sgp40VOCRaw;
 CloudCounter cloud_sgp40VOCIndex;
-CloudCounter cloud_wzCH2OConcentration;
 CloudTemperatureSensor cloud_bmp390Temperature;
 CloudPressure cloud_bmp390Pressure;
 CloudIlluminance cloud_tsl2561Illuminance;
@@ -30,7 +29,6 @@ void initProperties() {
   ArduinoCloud.addProperty(cloud_scd40CO2Concentration, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_sgp40VOCRaw, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_sgp40VOCIndex, READ, 1 * SECONDS, NULL);
-  ArduinoCloud.addProperty(cloud_wzCH2OConcentration, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_bmp390Temperature, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_bmp390Pressure, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_tsl2561Illuminance, READ, 1 * SECONDS, NULL);

@@ -6,7 +6,6 @@
 #include <SensirionI2cSht4x.h>
 #include <SensirionI2CScd4x.h>
 #include <SensirionI2CSgp40.h>
-#include <WZ.h>
 #include <Adafruit_BMP3XX.h>
 #include <Adafruit_TSL2561_U.h>
 #include <LiquidCrystal_PCF8574.h>
@@ -17,13 +16,11 @@
 SensirionI2cSht4x sht40;
 SensirionI2CScd4x scd40;
 SensirionI2CSgp40 sgp40;
-WZ wz(Serial1);
 Adafruit_BMP3XX bmp390;
 Adafruit_TSL2561_Unified tsl2561 = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
 LiquidCrystal_PCF8574 lcd(0x27);
 ArduinoLEDMatrix matrix;
 VOCGasIndexAlgorithm vocAlgorithm;
-
 
 float sht40Temperature = NAN;
 float sht40Humidity = NAN;
@@ -32,7 +29,6 @@ float scd40Humidity = NAN;
 uint16_t scd40CO2Concentration = 0;
 uint16_t sgp40VOCRaw = 0;
 int32_t sgp40VOCIndex = 0;
-float wzCH2OConcentration = NAN;
 float bmp390Temperature = NAN;
 float bmp390Pressure = NAN;
 float tsl2561Illuminance = NAN;
@@ -40,7 +36,6 @@ float tsl2561Illuminance = NAN;
 unsigned long lastSHT40ReadTime = 0;
 unsigned long lastSCD40ReadTime = 0;
 unsigned long lastSGP40ReadTime = 0;
-unsigned long lastWZReadTime = 0;
 unsigned long lastBMP390ReadTime = 0;
 unsigned long lastTSL2561ReadTime = 0;
 
@@ -66,11 +61,6 @@ void initializeSGP40() {
   }
 }
 
-void initializeWZ() {
-  Serial1.begin(9600);
-  wz.passiveMode();
-}
-
 void initializeBMP390() {
   if (bmp390.begin_I2C()) {
     bmp390.setPressureOversampling(BMP3_OVERSAMPLING_16X);
@@ -85,7 +75,7 @@ void initializeBMP390() {
 void initializeTSL2561() {
   if (tsl2561.begin()) {
     tsl2561.enableAutoRange(false);
-    tsl2561.setGain(TSL2561_GAIN_16X);
+    tsl2561.setGain(TSL2561_GAIN_1X);
     tsl2561.setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);
   } else {
     Serial.println(F("TSL2561 initialization failed."));
@@ -159,16 +149,6 @@ void readSGP40Data() {
   }
 }
 
-void readWZData() {
-  WZ::DATA ch2oData;
-  wz.requestRead();
-  if (wz.readUntil(ch2oData)) {
-    wzCH2OConcentration = ch2oData.HCHO_PPB;
-  } else {
-    Serial.println(F("WZ measurement error."));
-  }
-}
-
 void readBMP390Data() {
   if (bmp390.performReading()) {
     bmp390Temperature = bmp390.temperature;
@@ -197,8 +177,7 @@ void displayDataOnScreen() {
 
   lcd.setCursor(0, 1);
   lcd.print(sgp40VOCIndex == 0 ? "N/A " : String(sgp40VOCIndex) + " ");
-  lcd.print(isnan(wzCH2OConcentration) ? "N/A " : String(wzCH2OConcentration, 0) + " ");
-  lcd.print(isnan(bmp390Pressure) ? "N/A " : String(bmp390Pressure, 2) + " ");
+  lcd.print(isnan(bmp390Pressure) ? "N/A " : String(bmp390Pressure, 3) + " ");
   lcd.print(isnan(tsl2561Illuminance) ? "N/A" : String(tsl2561Illuminance, 0));
   lcd.print("                ");
 }
@@ -218,9 +197,6 @@ void displayDataOnSerial() {
 
   Serial.print("SGP40 VOC Index: ");
   Serial.print(sgp40VOCIndex == 0 ? "N/A | " : String(sgp40VOCIndex) + " | ");
-
-  Serial.print("WZ CH2O Concentration: ");
-  Serial.print(isnan(wzCH2OConcentration) ? "N/A | " : String(wzCH2OConcentration) + "ppb | ");
 
   Serial.print("BMP390 Temperature: ");
   Serial.print(isnan(bmp390Temperature) ? "N/A " : String(bmp390Temperature) + "C ");
@@ -242,7 +218,6 @@ void initializeCloudVariables() {
   cloud_scd40CO2Concentration = 0;
   cloud_sgp40VOCRaw = 0;
   cloud_sgp40VOCIndex = 0;
-  cloud_wzCH2OConcentration = 0.0;
   cloud_bmp390Temperature = 0.0;
   cloud_bmp390Pressure = 0.0;
   cloud_tsl2561Illuminance = 0.0;
@@ -256,7 +231,6 @@ void updateCloudVariables() {
   cloud_scd40CO2Concentration = scd40CO2Concentration;
   cloud_sgp40VOCRaw = sgp40VOCRaw;
   cloud_sgp40VOCIndex = sgp40VOCIndex;
-  cloud_wzCH2OConcentration = wzCH2OConcentration;
   cloud_bmp390Temperature = bmp390Temperature;
   cloud_bmp390Pressure = bmp390Pressure;
   cloud_tsl2561Illuminance = tsl2561Illuminance;
@@ -287,7 +261,6 @@ void setup() {
   initializeSHT40();
   initializeSCD40();
   initializeSGP40();
-  initializeWZ();
   initializeBMP390();
   initializeTSL2561();
   initializeLCD();
@@ -317,11 +290,6 @@ void loop() {
   if (currentMillis - lastSGP40ReadTime >= readInterval) {
     lastSGP40ReadTime = currentMillis;
     readSGP40Data();
-  }
-
-  if (currentMillis - lastWZReadTime >= readInterval) {
-    lastWZReadTime = currentMillis;
-    readWZData();
   }
 
   if (currentMillis - lastBMP390ReadTime >= readInterval) {

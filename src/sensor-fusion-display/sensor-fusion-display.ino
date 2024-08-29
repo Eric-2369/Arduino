@@ -95,7 +95,7 @@ void initializeBMP390() {
 void initializeTSL2561() {
   if (tsl2561.begin()) {
     tsl2561.enableAutoRange(false);
-    tsl2561.setGain(TSL2561_GAIN_16X);
+    tsl2561.setGain(TSL2561_GAIN_1X);
     tsl2561.setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);
   } else {
     Serial.println(F("TSL2561 initialization failed."));
