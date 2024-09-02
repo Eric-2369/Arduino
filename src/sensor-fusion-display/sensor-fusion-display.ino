@@ -55,13 +55,19 @@ const unsigned long readInterval = 1000;
 
 void initializeSHT45() {
   sht45.begin(Wire, SHT40_I2C_ADDR_44);
-  sht45.softReset();
+  int16_t error = sht45.softReset();
+  if (error) {
+    Serial.println(F("SHT45 initialization failed."));
+  }
 }
 
 void initializeSCD41() {
   scd41.begin(Wire);
-  scd41.stopPeriodicMeasurement();
-  scd41.startPeriodicMeasurement();
+  uint16_t stopError = scd41.stopPeriodicMeasurement();
+  uint16_t startError = scd41.startPeriodicMeasurement();
+  if (stopError || startError) {
+    Serial.println(F("SCD41 initialization failed."));
+  }
 }
 
 void initializeSGP41() {
@@ -104,14 +110,20 @@ void initializeTSL2561() {
 
 void initializeOLED() {
   u8g2.setI2CAddress(0x3C * 2);
-  u8g2.begin();
-  u8g2.enableUTF8Print();
+  if (u8g2.begin()) {
+    u8g2.enableUTF8Print();
+  } else {
+    Serial.println(F("OLED initialization failed."));
+  }
 }
 
 void initializeLEDMatrix() {
-  matrix.begin();
-  matrix.loadSequence(frames);
-  matrix.play(true);
+  if (matrix.begin()) {
+    matrix.loadSequence(frames);
+    matrix.play(true);
+  } else {
+    Serial.println(F("LED Matrix initialization failed."));
+  }
 }
 
 void readSHT45Data() {

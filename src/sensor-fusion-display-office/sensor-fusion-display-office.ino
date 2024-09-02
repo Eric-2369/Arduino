@@ -43,13 +43,19 @@ const unsigned long readInterval = 1000;
 
 void initializeSHT40() {
   sht40.begin(Wire, SHT40_I2C_ADDR_44);
-  sht40.softReset();
+  int16_t error = sht40.softReset();
+  if (error) {
+    Serial.println(F("SHT40 initialization failed."));
+  }
 }
 
 void initializeSCD40() {
   scd40.begin(Wire);
-  scd40.stopPeriodicMeasurement();
-  scd40.startPeriodicMeasurement();
+  uint16_t stopError = scd40.stopPeriodicMeasurement();
+  uint16_t startError = scd40.startPeriodicMeasurement();
+  if (stopError || startError) {
+    Serial.println(F("SCD40 initialization failed."));
+  }
 }
 
 void initializeSGP40() {
@@ -90,9 +96,12 @@ void initializeLCD() {
 }
 
 void initializeLEDMatrix() {
-  matrix.begin();
-  matrix.loadSequence(frames);
-  matrix.play(true);
+  if (matrix.begin()) {
+    matrix.loadSequence(frames);
+    matrix.play(true);
+  } else {
+    Serial.println(F("LED Matrix initialization failed."));
+  }
 }
 
 void readSHT40Data() {
