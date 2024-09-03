@@ -161,7 +161,7 @@ void readSGP40Data() {
 void readBMP390Data() {
   if (bmp390.performReading()) {
     bmp390Temperature = bmp390.temperature;
-    bmp390Pressure = bmp390.pressure / 1000.0;
+    bmp390Pressure = bmp390.pressure;
   } else {
     Serial.println(F("BMP390 measurement error."));
   }
@@ -186,7 +186,7 @@ void displayDataOnScreen() {
 
   lcd.setCursor(0, 1);
   lcd.print(sgp40VOCIndex == 0 ? "N/A " : String(sgp40VOCIndex) + " ");
-  lcd.print(isnan(bmp390Pressure) ? "N/A " : String(bmp390Pressure, 3) + " ");
+  lcd.print(isnan(bmp390Pressure) ? "N/A " : String(bmp390Pressure / 1000.0, 3) + " ");
   lcd.print(isnan(tsl2561Illuminance) ? "N/A" : String(tsl2561Illuminance, 0));
   lcd.print("                ");
 }
@@ -210,7 +210,7 @@ void displayDataOnSerial() {
   Serial.print("BMP390 Temperature: ");
   Serial.print(isnan(bmp390Temperature) ? "N/A " : String(bmp390Temperature) + "C ");
   Serial.print("Pressure: ");
-  Serial.print(isnan(bmp390Pressure) ? "N/A | " : String(bmp390Pressure, 3) + "kPa | ");
+  Serial.print(isnan(bmp390Pressure) ? "N/A | " : String(bmp390Pressure) + "Pa | ");
 
   Serial.print("TSL2561 Illuminance: ");
   Serial.print(isnan(tsl2561Illuminance) ? "N/A" : String(tsl2561Illuminance) + "lx");
