@@ -8,7 +8,7 @@ const char PASS[] = SECRET_OPTIONAL_PASS;  // Network password (use for WPA, or 
 
 CloudCounter cloud_wzCH2OConcentration;
 
-void initProperties(){
+void initProperties() {
   ArduinoCloud.addProperty(cloud_wzCH2OConcentration, READ, 1 * SECONDS, NULL);
 }
 

@@ -1,30 +1,19 @@
 #include "arduino_secrets.h"
 #include "thingProperties.h"
-
-#include <Arduino.h>
-#include <Wire.h>
-#include <SensirionI2cSht4x.h>
-#include <SensirionI2CScd4x.h>
-#include <SensirionI2CSgp41.h>
-#include <SensirionI2CSfa3x.h>
-#include <Adafruit_BMP3XX.h>
-#include <Adafruit_TSL2561_U.h>
-#include <U8g2lib.h>
+#include "deviceHandlers.h"
 #include <Arduino_LED_Matrix.h>
 #include "animation.h"
-#include <VOCGasIndexAlgorithm.h>
-#include <NOxGasIndexAlgorithm.h>
 
 SensirionI2cSht4x sht45;
 SensirionI2CScd4x scd41;
 SensirionI2CSgp41 sgp41;
+VOCGasIndexAlgorithm vocAlgorithm;
+NOxGasIndexAlgorithm noxAlgorithm;
 SensirionI2CSfa3x sfa30;
 Adafruit_BMP3XX bmp390;
 Adafruit_TSL2561_Unified tsl2561 = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 ArduinoLEDMatrix matrix;
-VOCGasIndexAlgorithm vocAlgorithm;
-NOxGasIndexAlgorithm noxAlgorithm;
 
 float sht45Temperature = NAN;
 float sht45Humidity = NAN;
@@ -42,181 +31,12 @@ float bmp390Temperature = NAN;
 float bmp390Pressure = NAN;
 float tsl2561Illuminance = NAN;
 
-uint16_t sgp41ConditioningTime = 5;
-
-unsigned long lastSHT45ReadTime = 0;
-unsigned long lastSCD41ReadTime = 0;
-unsigned long lastSGP41ReadTime = 0;
-unsigned long lastSFA30ReadTime = 0;
-unsigned long lastBMP390ReadTime = 0;
-unsigned long lastTSL2561ReadTime = 0;
-
-const unsigned long readInterval = 1000;
-
-void initializeSHT45() {
-  sht45.begin(Wire, SHT40_I2C_ADDR_44);
-  int16_t error = sht45.softReset();
-  if (error) {
-    Serial.println(F("SHT45 initialization failed."));
-  }
-}
-
-void initializeSCD41() {
-  scd41.begin(Wire);
-  uint16_t stopError = scd41.stopPeriodicMeasurement();
-  uint16_t startError = scd41.startPeriodicMeasurement();
-  if (stopError || startError) {
-    Serial.println(F("SCD41 initialization failed."));
-  }
-}
-
-void initializeSGP41() {
-  sgp41.begin(Wire);
-  uint16_t testResult;
-  uint16_t error = sgp41.executeSelfTest(testResult);
-  if (error || testResult != 0xD400) {
-    Serial.println(F("SGP41 initialization failed."));
-  }
-}
-
-void initializeSFA30() {
-  sfa30.begin(Wire);
-  uint16_t error = sfa30.startContinuousMeasurement();
-  if (error) {
-    Serial.println(F("SFA30 initialization failed."));
-  }
-}
-
-void initializeBMP390() {
-  if (bmp390.begin_I2C()) {
-    bmp390.setPressureOversampling(BMP3_OVERSAMPLING_16X);
-    bmp390.setTemperatureOversampling(BMP3_OVERSAMPLING_2X);
-    bmp390.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
-    bmp390.setOutputDataRate(BMP3_ODR_25_HZ);
-  } else {
-    Serial.println(F("BMP390 initialization failed."));
-  }
-}
-
-void initializeTSL2561() {
-  if (tsl2561.begin()) {
-    tsl2561.enableAutoRange(false);
-    tsl2561.setGain(TSL2561_GAIN_1X);
-    tsl2561.setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);
-  } else {
-    Serial.println(F("TSL2561 initialization failed."));
-  }
-}
-
-void initializeOLED() {
-  u8g2.setI2CAddress(0x3C * 2);
-  if (u8g2.begin()) {
-    u8g2.enableUTF8Print();
-  } else {
-    Serial.println(F("OLED initialization failed."));
-  }
-}
-
 void initializeLEDMatrix() {
   if (matrix.begin()) {
     matrix.loadSequence(frames);
     matrix.play(true);
   } else {
     Serial.println(F("LED Matrix initialization failed."));
-  }
-}
-
-void readSHT45Data() {
-  float tempTemperature = 0.0;
-  float tempHumidity = 0.0;
-  int16_t sht45Error = sht45.measureHighPrecision(tempTemperature, tempHumidity);
-  if (sht45Error == 0) {
-    sht45Temperature = tempTemperature;
-    sht45Humidity = tempHumidity;
-  } else {
-    Serial.println(F("SHT45 measurement error."));
-  }
-}
-
-void readSCD41Data() {
-  float tempSCD41Temperature = 0.0f;
-  float tempSCD41Humidity = 0.0f;
-  uint16_t tempCO2Concentration = 0;
-  bool isDataReady = false;
-  scd41.getDataReadyFlag(isDataReady);
-  if (isDataReady) {
-    uint16_t scd41Error = scd41.readMeasurement(tempCO2Concentration, tempSCD41Temperature, tempSCD41Humidity);
-    if (scd41Error == 0 && tempCO2Concentration != 0) {
-      scd41Temperature = tempSCD41Temperature;
-      scd41Humidity = tempSCD41Humidity;
-      scd41CO2Concentration = tempCO2Concentration;
-    } else {
-      Serial.println(F("SCD41 measurement error."));
-    }
-  }
-}
-
-void readSGP41Data() {
-  uint16_t sgp41Error;
-  uint16_t defaultT = 0x6666;
-  uint16_t defaultRh = 0x8000;
-  uint16_t compensationT = 0;
-  uint16_t compensationRh = 0;
-
-  if (!isnan(sht45Temperature) && !isnan(sht45Humidity)) {
-    compensationT = static_cast<uint16_t>((sht45Temperature + 45) * 65535 / 175);
-    compensationRh = static_cast<uint16_t>(sht45Humidity * 65535 / 100);
-  } else {
-    compensationT = defaultT;
-    compensationRh = defaultRh;
-  }
-
-  if (sgp41ConditioningTime > 0) {
-    sgp41Error = sgp41.executeConditioning(compensationRh, compensationT, sgp41VOCRaw);
-    sgp41ConditioningTime--;
-  } else {
-    sgp41Error = sgp41.measureRawSignals(compensationRh, compensationT, sgp41VOCRaw, sgp41NOXRaw);
-  }
-
-  if (sgp41Error == 0) {
-    sgp41VOCIndex = vocAlgorithm.process(sgp41VOCRaw);
-    sgp41NOXIndex = noxAlgorithm.process(sgp41NOXRaw);
-  } else {
-    Serial.println(F("SGP41 measurement error."));
-  }
-}
-
-void readSFA30Data() {
-  uint16_t error;
-  int16_t temperature;
-  int16_t humidity;
-  int16_t concentration;
-  error = sfa30.readMeasuredValues(concentration, humidity, temperature);
-  if (error == 0) {
-    sfa30Temperature = temperature / 200.0;
-    sfa30Humidity = humidity / 100.0;
-    sfa30CH2OConcentration = concentration / 5.0;
-  } else {
-    Serial.println(F("SFA30 measurement error."));
-  }
-}
-
-void readBMP390Data() {
-  if (bmp390.performReading()) {
-    bmp390Temperature = bmp390.temperature;
-    bmp390Pressure = bmp390.pressure;
-  } else {
-    Serial.println(F("BMP390 measurement error."));
-  }
-}
-
-void readTSL2561Data() {
-  sensors_event_t event;
-  tsl2561.getEvent(&event);
-  if (event.light) {
-    tsl2561Illuminance = event.light;
-  } else {
-    Serial.println(F("TSL2561 measurement error."));
   }
 }
 
@@ -360,13 +180,13 @@ void setup() {
 
   Wire.begin();
 
-  initializeSHT45();
-  initializeSCD41();
-  initializeSGP41();
-  initializeSFA30();
-  initializeBMP390();
-  initializeTSL2561();
-  initializeOLED();
+  initializeSHT4x(sht45);
+  initializeSCD4x(scd41);
+  initializeSGP41(sgp41);
+  initializeSFA3x(sfa30);
+  initializeBMP3xx(bmp390);
+  initializeTSL2561(tsl2561);
+  initializeOLED(u8g2);
   initializeLEDMatrix();
 
   initProperties();
@@ -378,36 +198,44 @@ void setup() {
 }
 
 void loop() {
+  static uint16_t sgp41ConditioningTime = 5;
+  static unsigned long lastSHT45ReadTime = 0;
+  static unsigned long lastSCD41ReadTime = 0;
+  static unsigned long lastSGP41ReadTime = 0;
+  static unsigned long lastSFA30ReadTime = 0;
+  static unsigned long lastBMP390ReadTime = 0;
+  static unsigned long lastTSL2561ReadTime = 0;
+  const unsigned long readInterval = 1000;
   unsigned long currentMillis = millis();
 
   if (currentMillis - lastSHT45ReadTime >= readInterval) {
     lastSHT45ReadTime = currentMillis;
-    readSHT45Data();
+    readSHT4xData(sht45, sht45Temperature, sht45Humidity);
   }
 
   if (currentMillis - lastSCD41ReadTime >= readInterval) {
     lastSCD41ReadTime = currentMillis;
-    readSCD41Data();
+    readSCD4xData(scd41, scd41Temperature, scd41Humidity, scd41CO2Concentration);
   }
 
   if (currentMillis - lastSGP41ReadTime >= readInterval) {
     lastSGP41ReadTime = currentMillis;
-    readSGP41Data();
+    readSGP41Data(sgp41, vocAlgorithm, noxAlgorithm, sht45Temperature, sht45Humidity, sgp41VOCRaw, sgp41NOXRaw, sgp41VOCIndex, sgp41NOXIndex, sgp41ConditioningTime);
   }
 
   if (currentMillis - lastSFA30ReadTime >= readInterval) {
     lastSFA30ReadTime = currentMillis;
-    readSFA30Data();
+    readSFA3xData(sfa30, sfa30Temperature, sfa30Humidity, sfa30CH2OConcentration);
   }
 
   if (currentMillis - lastBMP390ReadTime >= readInterval) {
     lastBMP390ReadTime = currentMillis;
-    readBMP390Data();
+    readBMP3xxData(bmp390, bmp390Temperature, bmp390Pressure);
   }
 
   if (currentMillis - lastTSL2561ReadTime >= readInterval) {
     lastTSL2561ReadTime = currentMillis;
-    readTSL2561Data();
+    readTSL2561Data(tsl2561, tsl2561Illuminance);
   }
 
   if (cloud_displayControl) {

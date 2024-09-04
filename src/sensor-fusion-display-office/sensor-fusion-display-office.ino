@@ -129,7 +129,7 @@ void setup() {
   initializeBMP3xx(bmp390);
   initializeTSL2561(tsl2561);
   initializeLCD(lcd);
-  initializeLEDMatrix(matrix);
+  initializeLEDMatrix();
 
   initProperties();
   initializeCloudVariables();
