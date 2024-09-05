@@ -124,6 +124,7 @@ void displayDataOnSerial() {
 }
 
 void initializeCloudVariables() {
+  cloud_systemReset = false;
   cloud_displayControl = true;
   cloud_sht45Temperature = 0.0;
   cloud_sht45Humidity = 0.0;
@@ -160,6 +161,12 @@ void updateCloudVariables() {
   cloud_tsl2561Illuminance = tsl2561Illuminance;
 }
 
+void onCloudSystemResetChange() {
+  if (cloud_systemReset) {
+    NVIC_SystemReset();
+  }
+}
+
 void onCloudDisplayControlChange() {
   if (cloud_displayControl) {
     u8g2.setPowerSave(0);
@@ -171,14 +178,25 @@ void onCloudDisplayControlChange() {
   }
 }
 
+void checkCloudConnection() {
+  static unsigned long lastCloudConnectedTime = 0;
+
+  if (ArduinoCloud.connected()) {
+    lastCloudConnectedTime = millis();
+  } else {
+    if (millis() - lastCloudConnectedTime >= 120 * 1000) {
+      Serial.println(F("Cloud connection lost for 120 seconds. System will reset."));
+      NVIC_SystemReset();
+    }
+  }
+}
+
 void setup() {
   Serial.begin(9600);
-  while (!Serial) {
-    delay(100);
+  delay(1000);
+  if (clearI2C() == 0) {
+    Wire.begin();
   }
-  delay(1500);
-
-  Wire.begin();
 
   initializeSHT4x(sht45);
   initializeSCD4x(scd41);
@@ -191,7 +209,7 @@ void setup() {
 
   initProperties();
   initializeCloudVariables();
-  ArduinoCloud.begin(ArduinoIoTPreferredConnection);
+  ArduinoCloud.begin(ArduinoIoTPreferredConnection, false);
   ArduinoCloud.printDebugInfo();
 
   Serial.println(F("All devices have been initialized."));
@@ -243,6 +261,7 @@ void loop() {
     displayDataOnSerial();
   }
 
+  checkCloudConnection();
   updateCloudVariables();
   ArduinoCloud.update();
 }

@@ -6,8 +6,10 @@
 const char SSID[] = SECRET_SSID;           // Network SSID (name)
 const char PASS[] = SECRET_OPTIONAL_PASS;  // Network password (use for WPA, or use as key for WEP)
 
+void onCloudSystemResetChange();
 void onCloudDisplayControlChange();
 
+CloudSwitch cloud_systemReset;
 CloudSwitch cloud_displayControl;
 CloudTemperatureSensor cloud_sht40Temperature;
 CloudRelativeHumidity cloud_sht40Humidity;
@@ -21,6 +23,7 @@ CloudPressure cloud_bmp390Pressure;
 CloudIlluminance cloud_tsl2561Illuminance;
 
 void initProperties() {
+  ArduinoCloud.addProperty(cloud_systemReset, READWRITE, 1 * SECONDS, onCloudSystemResetChange);
   ArduinoCloud.addProperty(cloud_displayControl, READWRITE, 1 * SECONDS, onCloudDisplayControlChange);
   ArduinoCloud.addProperty(cloud_sht40Temperature, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_sht40Humidity, READ, 1 * SECONDS, NULL);

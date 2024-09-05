@@ -1,5 +1,62 @@
 #include "deviceHandlers.h"
 
+int clearI2C() {
+  pinMode(SDA, INPUT_PULLUP);
+  pinMode(SCL, INPUT_PULLUP);
+
+  delay(2000);
+
+  boolean SCL_LOW = (digitalRead(SCL) == LOW);
+  if (SCL_LOW) {
+    Serial.println(F("I2C bus error. Could not clear"));
+    Serial.println(F("SCL clock line held low"));
+    return 1;
+  }
+
+  boolean SDA_LOW = (digitalRead(SDA) == LOW);
+  int clockCount = 20;
+
+  while (SDA_LOW && (clockCount > 0)) {
+    clockCount--;
+    pinMode(SCL, INPUT);
+    pinMode(SCL, OUTPUT);
+    delayMicroseconds(10);
+    pinMode(SCL, INPUT);
+    pinMode(SCL, INPUT_PULLUP);
+    delayMicroseconds(10);
+    SCL_LOW = (digitalRead(SCL) == LOW);
+    int counter = 20;
+    while (SCL_LOW && (counter > 0)) {
+      counter--;
+      delay(100);
+      SCL_LOW = (digitalRead(SCL) == LOW);
+    }
+    if (SCL_LOW) {
+      Serial.println(F("I2C bus error. Could not clear"));
+      Serial.println(F("SCL clock line held low by slave clock stretch"));
+      return 2;
+    }
+    SDA_LOW = (digitalRead(SDA) == LOW);
+  }
+  if (SDA_LOW) {
+    Serial.println(F("I2C bus error. Could not clear"));
+    Serial.println(F("SDA data line held low"));
+    return 3;
+  }
+
+  pinMode(SDA, INPUT);
+  pinMode(SDA, OUTPUT);
+  delayMicroseconds(10);
+  pinMode(SDA, INPUT);
+  pinMode(SDA, INPUT_PULLUP);
+  delayMicroseconds(10);
+  pinMode(SDA, INPUT);
+  pinMode(SCL, INPUT);
+
+  Serial.println(F("I2C bus cleared successfully"));
+  return 0;
+}
+
 void initializeSHT4x(SensirionI2cSht4x& sht4x) {
   sht4x.begin(Wire, SHT40_I2C_ADDR_44);
   int16_t error = sht4x.softReset();
@@ -201,8 +258,7 @@ void readBMP3xxData(Adafruit_BMP3XX& bmp3xx, float& temperature, float& pressure
 
 void readTSL2561Data(Adafruit_TSL2561_Unified& tsl2561, float& illuminance) {
   sensors_event_t event;
-  tsl2561.getEvent(&event);
-  if (event.light) {
+  if (tsl2561.getEvent(&event)) {
     illuminance = event.light;
   } else {
     Serial.println(F("TSL2561 measurement error."));

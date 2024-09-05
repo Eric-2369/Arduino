@@ -13,6 +13,8 @@
 #include <LiquidCrystal_PCF8574.h>
 #include <U8g2lib.h>
 
+int clearI2C();
+
 void initializeSHT4x(SensirionI2cSht4x& sht4x);
 void initializeSCD4x(SensirionI2CScd4x& scd4x);
 void initializeSGP40(SensirionI2CSgp40& sgp40);
