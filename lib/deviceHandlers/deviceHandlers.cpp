@@ -92,6 +92,10 @@ void initializeSGP41(SensirionI2CSgp41& sgp41) {
   }
 }
 
+void initializeWZ(WZ& wz) {
+  wz.passiveMode();
+}
+
 void initializeSFA3x(SensirionI2CSfa3x& sfa3x) {
   sfa3x.begin(Wire);
   uint16_t error = sfa3x.startContinuousMeasurement();
@@ -244,6 +248,16 @@ void readSFA3xData(SensirionI2CSfa3x& sfa3x, float& temperature, float& humidity
     ch2oConcentration = tempCH2OConcentration / 5.0;
   } else {
     Serial.println(F("SFA3x measurement error."));
+  }
+}
+
+void readWZData(WZ& wz, float& ch2oConcentration) {
+  WZ::DATA ch2oData;
+  wz.requestRead();
+  if (wz.readUntil(ch2oData)) {
+    ch2oConcentration = ch2oData.HCHO_PPB;
+  } else {
+    Serial.println(F("WZ measurement error."));
   }
 }
 

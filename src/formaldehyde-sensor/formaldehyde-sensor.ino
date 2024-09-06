@@ -1,40 +1,13 @@
 #include "arduino_secrets.h"
 #include "thingProperties.h"
-
-#include <Arduino.h>
-#include <WZ.h>
-#include "ArduinoGraphics.h"
-#include "Arduino_LED_Matrix.h"
+#include "deviceHandlers.h"
+#include <ArduinoGraphics.h>
+#include <Arduino_LED_Matrix.h>
 
 WZ wz(Serial1);
 ArduinoLEDMatrix matrix;
 
 float wzCH2OConcentration = NAN;
-
-unsigned long lastWZReadTime = 0;
-
-const unsigned long readInterval = 1000;
-
-void initializeWZ() {
-  Serial1.begin(9600);
-  wz.passiveMode();
-}
-
-void readWZData() {
-  WZ::DATA ch2oData;
-  wz.requestRead();
-  if (wz.readUntil(ch2oData)) {
-    wzCH2OConcentration = ch2oData.HCHO_PPB;
-  } else {
-    Serial.println(F("WZ measurement error."));
-  }
-}
-
-void displayDataOnSerial() {
-  Serial.print("WZ CH2O Concentration: ");
-  Serial.print(isnan(wzCH2OConcentration) ? "N/A" : String(wzCH2OConcentration, 0) + "ppb");
-  Serial.println();
-}
 
 void displayDataOnMatrix() {
   matrix.beginDraw();
@@ -48,6 +21,12 @@ void displayDataOnMatrix() {
   matrix.endDraw();
 }
 
+void displayDataOnSerial() {
+  Serial.print("WZ CH2O Concentration: ");
+  Serial.print(isnan(wzCH2OConcentration) ? "N/A" : String(wzCH2OConcentration, 0) + "ppb");
+  Serial.println();
+}
+
 void initializeCloudVariables() {
   cloud_wzCH2OConcentration = 0.0;
 }
@@ -56,32 +35,54 @@ void updateCloudVariables() {
   cloud_wzCH2OConcentration = wzCH2OConcentration;
 }
 
+void onCloudSystemResetChange() {
+  if (cloud_systemReset) {
+    NVIC_SystemReset();
+  }
+}
+
+void checkCloudConnection() {
+  static unsigned long lastCloudConnectedTime = 0;
+
+  if (ArduinoCloud.connected()) {
+    lastCloudConnectedTime = millis();
+  } else {
+    if (millis() - lastCloudConnectedTime >= 120 * 1000) {
+      Serial.println(F("Cloud connection lost for 120 seconds. System will reset."));
+      NVIC_SystemReset();
+    }
+  }
+}
+
 void setup() {
   Serial.begin(9600);
-  while (!Serial) {
-    delay(100);
-  }
-  delay(1500);
+  Serial1.begin(9600);
+  delay(1000);
 
-  initializeWZ();
+  initializeWZ(wz);
   matrix.begin();
 
   initProperties();
   initializeCloudVariables();
-  ArduinoCloud.begin(ArduinoIoTPreferredConnection);
+  ArduinoCloud.begin(ArduinoIoTPreferredConnection, false);
   ArduinoCloud.printDebugInfo();
+
+  Serial.println(F("All devices have been initialized."));
 }
 
 void loop() {
+  static unsigned long lastWZReadTime = 0;
+  const unsigned long readInterval = 1000;
   unsigned long currentMillis = millis();
 
   if (currentMillis - lastWZReadTime >= readInterval) {
     lastWZReadTime = currentMillis;
-    readWZData();
+    readWZData(wz, wzCH2OConcentration);
     displayDataOnMatrix();
     displayDataOnSerial();
   }
 
+  checkCloudConnection();
   updateCloudVariables();
   ArduinoCloud.update();
 }
