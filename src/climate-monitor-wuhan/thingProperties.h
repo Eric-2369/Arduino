@@ -3,14 +3,45 @@
 #include <ArduinoIoTCloud.h>
 #include <Arduino_ConnectionHandler.h>
 
-const char SSID[]     = SECRET_SSID;    // Network SSID (name)
-const char PASS[]     = SECRET_OPTIONAL_PASS;    // Network password (use for WPA, or use as key for WEP)
+const char SSID[] = SECRET_SSID;           // Network SSID (name)
+const char PASS[] = SECRET_OPTIONAL_PASS;  // Network password (use for WPA, or use as key for WEP)
 
+void onCloudSystemResetChange();
 
+CloudSwitch cloud_systemReset;
+CloudTemperatureSensor cloud_sht45Temperature;
+CloudRelativeHumidity cloud_sht45Humidity;
+CloudTemperatureSensor cloud_scd41Temperature;
+CloudRelativeHumidity cloud_scd41Humidity;
+CloudCounter cloud_scd41CO2Concentration;
+CloudCounter cloud_sgp41VOCRaw;
+CloudCounter cloud_sgp41NOXRaw;
+CloudCounter cloud_sgp41VOCIndex;
+CloudCounter cloud_sgp41NOXIndex;
+CloudTemperatureSensor cloud_sfa30Temperature;
+CloudRelativeHumidity cloud_sfa30Humidity;
+CloudCounter cloud_sfa30CH2OConcentration;
+CloudTemperatureSensor cloud_bmp390Temperature;
+CloudPressure cloud_bmp390Pressure;
+CloudIlluminance cloud_tsl2591Illuminance;
 
-void initProperties(){
-
-
+void initProperties() {
+  ArduinoCloud.addProperty(cloud_systemReset, READWRITE, 1 * SECONDS, onCloudSystemResetChange);
+  ArduinoCloud.addProperty(cloud_sht45Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sht45Humidity, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_scd41Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_scd41Humidity, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_scd41CO2Concentration, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41VOCRaw, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41NOXRaw, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41VOCIndex, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sgp41NOXIndex, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sfa30Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sfa30Humidity, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_sfa30CH2OConcentration, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_bmp390Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_bmp390Pressure, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_tsl2591Illuminance, READ, 1 * SECONDS, NULL);
 }
 
 WiFiConnectionHandler ArduinoIoTPreferredConnection(SSID, PASS);

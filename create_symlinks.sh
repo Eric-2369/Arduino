@@ -9,6 +9,8 @@ SOURCE_FILES=(
 
 # List of target directories, add or remove directories as needed
 TARGET_DIRS=(
+    "src/climate-monitor-shanghai"
+    "src/climate-monitor-wuhan"
     "src/formaldehyde-sensor"
     "src/sensor-fusion-display"
     "src/sensor-fusion-display-office"

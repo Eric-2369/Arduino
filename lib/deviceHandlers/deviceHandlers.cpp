@@ -92,16 +92,17 @@ void initializeSGP41(SensirionI2CSgp41& sgp41) {
   }
 }
 
-void initializeWZ(WZ& wz) {
-  wz.passiveMode();
-}
-
 void initializeSFA3x(SensirionI2CSfa3x& sfa3x) {
   sfa3x.begin(Wire);
-  uint16_t error = sfa3x.startContinuousMeasurement();
-  if (error) {
+  uint16_t stopError = sfa3x.stopMeasurement();
+  uint16_t startError = sfa3x.startContinuousMeasurement();
+  if (stopError || startError) {
     Serial.println(F("SFA3x initialization failed."));
   }
+}
+
+void initializeWZ(WZ& wz) {
+  wz.passiveMode();
 }
 
 void initializeBMP3xx(Adafruit_BMP3XX& bmp3xx) {
@@ -125,6 +126,15 @@ void initializeTSL2561(Adafruit_TSL2561_Unified& tsl2561) {
   }
 }
 
+void initializeTSL2591(Adafruit_TSL2591& tsl2591) {
+  if (tsl2591.begin()) {
+    tsl2591.setGain(TSL2591_GAIN_MED);
+    tsl2591.setTiming(TSL2591_INTEGRATIONTIME_300MS);
+  } else {
+    Serial.println(F("TSL2591 initialization failed."));
+  }
+}
+
 void initializeLCD(LiquidCrystal_PCF8574& lcd) {
   lcd.begin(16, 2);
   lcd.setBacklight(255);
@@ -132,10 +142,10 @@ void initializeLCD(LiquidCrystal_PCF8574& lcd) {
   lcd.clear();
 }
 
-void initializeOLED(U8G2_SSD1306_128X64_NONAME_1_HW_I2C& u8g2) {
-  u8g2.setI2CAddress(0x3C * 2);
-  if (u8g2.begin()) {
-    u8g2.enableUTF8Print();
+void initializeOLED(U8G2_SSD1306_128X64_NONAME_1_HW_I2C& oled) {
+  oled.setI2CAddress(0x3C * 2);
+  if (oled.begin()) {
+    oled.enableUTF8Print();
   } else {
     Serial.println(F("OLED initialization failed."));
   }
@@ -153,7 +163,7 @@ void readSHT4xData(SensirionI2cSht4x& sht4x, float& temperature, float& humidity
   }
 }
 
-void readSCD4xData(SensirionI2CScd4x& scd4x, float& temperature, float& humidity, uint16_t& co2Concentration) {
+void readSCD4xData(SensirionI2CScd4x& scd4x, float& temperature, float& humidity, float& co2Concentration) {
   float tempTemperature = 0.0f;
   float tempHumidity = 0.0f;
   uint16_t tempCO2Concentration = 0;
@@ -171,7 +181,7 @@ void readSCD4xData(SensirionI2CScd4x& scd4x, float& temperature, float& humidity
   }
 }
 
-void readSGP40Data(SensirionI2CSgp40& sgp40, VOCGasIndexAlgorithm& vocAlgorithm, float temperature, float humidity, uint16_t& vocRaw, int32_t& vocIndex) {
+void readSGP40Data(SensirionI2CSgp40& sgp40, VOCGasIndexAlgorithm& vocAlgorithm, float temperature, float humidity, float& vocRaw, float& vocIndex) {
   uint16_t defaultTemperature = 0x6666;
   uint16_t defaultHumidity = 0x8000;
   uint16_t compensationTemperature = 0;
@@ -198,7 +208,7 @@ void readSGP40Data(SensirionI2CSgp40& sgp40, VOCGasIndexAlgorithm& vocAlgorithm,
   }
 }
 
-void readSGP41Data(SensirionI2CSgp41& sgp41, VOCGasIndexAlgorithm& vocAlgorithm, NOxGasIndexAlgorithm& noxAlgorithm, float temperature, float humidity, uint16_t& vocRaw, uint16_t& noxRaw, int32_t& vocIndex, int32_t& noxIndex, uint16_t& conditioningTime) {
+void readSGP41Data(SensirionI2CSgp41& sgp41, VOCGasIndexAlgorithm& vocAlgorithm, NOxGasIndexAlgorithm& noxAlgorithm, float temperature, float humidity, float& vocRaw, float& noxRaw, float& vocIndex, float& noxIndex, uint16_t& conditioningTime) {
   uint16_t error;
   uint16_t defaultTemperature = 0x6666;
   uint16_t defaultHumidity = 0x8000;
@@ -276,5 +286,14 @@ void readTSL2561Data(Adafruit_TSL2561_Unified& tsl2561, float& illuminance) {
     illuminance = event.light;
   } else {
     Serial.println(F("TSL2561 measurement error."));
+  }
+}
+
+void readTSL2591Data(Adafruit_TSL2591& tsl2591, float& illuminance) {
+  sensors_event_t event;
+  if (tsl2591.getEvent(&event)) {
+    illuminance = event.light;
+  } else {
+    Serial.println(F("TSL2591 measurement error."));
   }
 }
