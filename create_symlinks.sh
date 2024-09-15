@@ -11,6 +11,7 @@ SOURCE_FILES=(
 TARGET_DIRS=(
     "src/climate-monitor-shanghai"
     "src/climate-monitor-wuhan"
+    "src/climate-monitor-wuhan-office"
     "src/formaldehyde-sensor"
     "src/sensor-fusion-display"
     "src/sensor-fusion-display-office"
