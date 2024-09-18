@@ -19,21 +19,21 @@ const uint8_t BLUE_LED_PIN = 5;
 
 bool i2cInitialized = false;
 
-float sht45Temperature = 0.0;
-float sht45Humidity = 0.0;
-float scd41Temperature = 0.0;
-float scd41Humidity = 0.0;
-float scd41CO2Concentration = 0.0;
-float sgp41VOCRaw = 0.0;
-float sgp41NOXRaw = 0.0;
-float sgp41VOCIndex = 0.0;
-float sgp41NOXIndex = 0.0;
-float sfa30Temperature = 0.0;
-float sfa30Humidity = 0.0;
-float sfa30CH2OConcentration = 0.0;
-float bmp390Temperature = 0.0;
-float bmp390Pressure = 0.0;
-float tsl2591Illuminance = 0.0;
+float sht45Temperature = NAN;
+float sht45Humidity = NAN;
+float scd41Temperature = NAN;
+float scd41Humidity = NAN;
+float scd41CO2Concentration = NAN;
+float sgp41VOCRaw = NAN;
+float sgp41NOXRaw = NAN;
+float sgp41VOCIndex = NAN;
+float sgp41NOXIndex = NAN;
+float sfa30Temperature = NAN;
+float sfa30Humidity = NAN;
+float sfa30CH2OConcentration = NAN;
+float bmp390Temperature = NAN;
+float bmp390Pressure = NAN;
+float tsl2591Illuminance = NAN;
 
 void updateCloudVariables() {
   cloud_sht45Temperature = sht45Temperature;
@@ -102,12 +102,12 @@ void setup() {
 
   if (clearI2C() == 0) {
     Wire.begin();
-    initializeSHT4x(sht45);
-    initializeSCD4x(scd41);
-    initializeSGP41(sgp41);
-    initializeSFA3x(sfa30);
-    initializeBMP3xx(bmp390);
-    initializeTSL2591(tsl2591);
+    initializeSHT4x(sht45, Wire);
+    initializeSCD4x(scd41, Wire);
+    initializeSGP41(sgp41, Wire);
+    initializeSFA3x(sfa30, Wire);
+    initializeBMP3xx(bmp390, Wire);
+    initializeTSL2591(tsl2591, Wire);
     i2cInitialized = true;
   }
 
@@ -135,8 +135,8 @@ void loop() {
     readSFA3xData(sfa30, sfa30Temperature, sfa30Humidity, sfa30CH2OConcentration);
     readBMP3xxData(bmp390, bmp390Temperature, bmp390Pressure);
     readTSL2591Data(tsl2591, tsl2591Illuminance);
-    digitalWrite(BLUE_LED_PIN, LOW);
     updateCloudVariables();
+    digitalWrite(BLUE_LED_PIN, LOW);
   }
 
   checkCloudConnection();

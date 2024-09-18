@@ -2,11 +2,13 @@
 #include "thingProperties.h"
 #include "deviceHandlers.h"
 
+#include <LiquidCrystal_PCF8574.h>
+
 SensirionI2cSht4x sht40;
 SensirionI2CScd4x scd40;
 SensirionI2CSgp40 sgp40;
 Adafruit_BMP3XX bmp390;
-Adafruit_TSL2561_Unified tsl2561 = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
+Adafruit_TSL2561_Unified tsl2561 = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 2561);
 
 VOCGasIndexAlgorithm vocAlgorithm;
 
@@ -19,16 +21,16 @@ const uint8_t BLUE_LED_PIN = 5;
 
 bool i2cInitialized = false;
 
-float sht40Temperature = 0.0;
-float sht40Humidity = 0.0;
-float scd40Temperature = 0.0;
-float scd40Humidity = 0.0;
-float scd40CO2Concentration = 0.0;
-float sgp40VOCRaw = 0.0;
-float sgp40VOCIndex = 0.0;
-float bmp390Temperature = 0.0;
-float bmp390Pressure = 0.0;
-float tsl2561Illuminance = 0.0;
+float sht40Temperature = NAN;
+float sht40Humidity = NAN;
+float scd40Temperature = NAN;
+float scd40Humidity = NAN;
+float scd40CO2Concentration = NAN;
+float sgp40VOCRaw = NAN;
+float sgp40VOCIndex = NAN;
+float bmp390Temperature = NAN;
+float bmp390Pressure = NAN;
+float tsl2561Illuminance = NAN;
 
 void updateCloudVariables() {
   cloud_sht40Temperature = sht40Temperature;
@@ -85,6 +87,13 @@ void onCloudSystemResetChange() {
   }
 }
 
+void initializeLCD(LiquidCrystal_PCF8574& lcd) {
+  lcd.begin(16, 2);
+  lcd.setBacklight(255);
+  lcd.home();
+  lcd.clear();
+}
+
 void displayDataOnScreen() {
   lcd.setCursor(0, 0);
   lcd.print(String(sht40Temperature, 2) + " ");
@@ -106,11 +115,11 @@ void setup() {
 
   if (clearI2C() == 0) {
     Wire.begin();
-    initializeSHT4x(sht40);
-    initializeSCD4x(scd40);
-    initializeSGP40(sgp40);
-    initializeBMP3xx(bmp390);
-    initializeTSL2561(tsl2561);
+    initializeSHT4x(sht40, Wire);
+    initializeSCD4x(scd40, Wire);
+    initializeSGP40(sgp40, Wire);
+    initializeBMP3xx(bmp390, Wire);
+    initializeTSL2561(tsl2561, Wire);
     initializeLCD(lcd);
     i2cInitialized = true;
   }
@@ -137,9 +146,9 @@ void loop() {
     readSGP40Data(sgp40, vocAlgorithm, sht40Temperature, sht40Humidity, sgp40VOCRaw, sgp40VOCIndex);
     readBMP3xxData(bmp390, bmp390Temperature, bmp390Pressure);
     readTSL2561Data(tsl2561, tsl2561Illuminance);
-    digitalWrite(BLUE_LED_PIN, LOW);
-    displayDataOnScreen();
     updateCloudVariables();
+    displayDataOnScreen();
+    digitalWrite(BLUE_LED_PIN, LOW);
   }
 
   checkCloudConnection();
