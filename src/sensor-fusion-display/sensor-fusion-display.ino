@@ -1,147 +1,44 @@
 #include "arduino_secrets.h"
 #include "thingProperties.h"
 #include "deviceHandlers.h"
+
+#include <U8g2lib.h>
 #include <Arduino_LED_Matrix.h>
 #include "animation.h"
 
 SensirionI2cSht4x sht45;
 SensirionI2CScd4x scd41;
 SensirionI2CSgp41 sgp41;
+WZ wz(Serial1);
+Adafruit_BMP3XX bmp390;
+Adafruit_TSL2561_Unified tsl2561 = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 2561);
+
 VOCGasIndexAlgorithm vocAlgorithm;
 NOxGasIndexAlgorithm noxAlgorithm;
-SensirionI2CSfa3x sfa30;
-Adafruit_BMP3XX bmp390;
-Adafruit_TSL2561_Unified tsl2561 = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
-U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+
+U8G2_SH1106_128X64_NONAME_2_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 ArduinoLEDMatrix matrix;
+
+const uint8_t RED_LED_PIN = 2;
+const uint8_t YELLOW_LED_PIN = 3;
+const uint8_t GREEN_LED_PIN = 4;
+const uint8_t BLUE_LED_PIN = 5;
+
+bool i2cInitialized = false;
 
 float sht45Temperature = NAN;
 float sht45Humidity = NAN;
 float scd41Temperature = NAN;
 float scd41Humidity = NAN;
-uint16_t scd41CO2Concentration = 0;
-uint16_t sgp41VOCRaw = 0;
-int32_t sgp41VOCIndex = 0;
-uint16_t sgp41NOXRaw = 0;
-int32_t sgp41NOXIndex = 0;
-float sfa30Temperature = NAN;
-float sfa30Humidity = NAN;
-float sfa30CH2OConcentration = NAN;
+float scd41CO2Concentration = NAN;
+float sgp41VOCRaw = NAN;
+float sgp41NOXRaw = NAN;
+float sgp41VOCIndex = NAN;
+float sgp41NOXIndex = NAN;
+float wzCH2OConcentration = NAN;
 float bmp390Temperature = NAN;
 float bmp390Pressure = NAN;
 float tsl2561Illuminance = NAN;
-
-void initializeLEDMatrix() {
-  if (matrix.begin()) {
-    matrix.loadSequence(frames);
-    matrix.play(true);
-  } else {
-    Serial.println(F("LED Matrix initialization failed."));
-  }
-}
-
-void displayDataOnScreen() {
-  u8g2.firstPage();
-  do {
-    u8g2.setFont(u8g2_font_profont11_mf);
-    u8g2.setFontPosTop();
-
-    u8g2.setCursor(0, 0);
-    u8g2.print("SHT45 ");
-    u8g2.print(isnan(sht45Temperature) ? "N/A " : String(sht45Temperature) + "C ");
-    u8g2.print(isnan(sht45Humidity) ? "N/A" : String(sht45Humidity) + "%");
-
-    u8g2.setCursor(0, 9);
-    u8g2.print("SCD41 ");
-    u8g2.print(isnan(scd41Temperature) ? "N/A " : String(scd41Temperature) + "C ");
-    u8g2.print(isnan(scd41Humidity) ? "N/A" : String(scd41Humidity) + "%");
-
-    u8g2.setCursor(0, 18);
-    u8g2.print("SCD41 CO2 ");
-    u8g2.print(scd41CO2Concentration == 0 ? "N/A" : String(scd41CO2Concentration) + "PPM");
-
-    u8g2.setCursor(0, 27);
-    u8g2.print("SGP41 VOC ");
-    u8g2.print(sgp41VOCIndex == 0 ? "N/A " : String(sgp41VOCIndex) + " ");
-    u8g2.print("NOX ");
-    u8g2.print(sgp41NOXIndex == 0 ? "N/A" : String(sgp41NOXIndex));
-
-    u8g2.setCursor(0, 36);
-    u8g2.print("SFA30 ");
-    u8g2.print(isnan(sfa30Temperature) ? "N/A " : String(sfa30Temperature) + "C ");
-    u8g2.print(isnan(sfa30Humidity) ? "N/A" : String(sfa30Humidity) + "%");
-
-    u8g2.setCursor(0, 45);
-    u8g2.print("SFA30 CH2O ");
-    u8g2.print(isnan(sfa30CH2OConcentration) ? "N/A" : String(sfa30CH2OConcentration) + "PPB");
-
-    u8g2.setCursor(0, 54);
-    u8g2.print("BMP390 ");
-    u8g2.print(isnan(bmp390Temperature) ? "N/A " : String(bmp390Temperature) + "C ");
-    u8g2.print(isnan(bmp390Pressure) ? "N/A" : String(bmp390Pressure / 1000.0, 2) + "KPA");
-
-    u8g2.setCursor(0, 63);
-    u8g2.print("TSL2561 ");
-    u8g2.print(isnan(tsl2561Illuminance) ? "N/A" : String(tsl2561Illuminance) + "LX");
-
-  } while (u8g2.nextPage());
-}
-
-void displayDataOnSerial() {
-  Serial.print("SHT45 Temperature: ");
-  Serial.print(isnan(sht45Temperature) ? "N/A " : String(sht45Temperature) + "C ");
-  Serial.print("Humidity: ");
-  Serial.print(isnan(sht45Humidity) ? "N/A | " : String(sht45Humidity) + "% | ");
-
-  Serial.print("SCD41 Temperature: ");
-  Serial.print(isnan(scd41Temperature) ? "N/A " : String(scd41Temperature) + "C ");
-  Serial.print("Humidity: ");
-  Serial.print(isnan(scd41Humidity) ? "N/A " : String(scd41Humidity) + "% ");
-  Serial.print("CO2 Concentration: ");
-  Serial.print(scd41CO2Concentration == 0 ? "N/A | " : String(scd41CO2Concentration) + "ppm | ");
-
-  Serial.print("SGP41 VOC Index: ");
-  Serial.print(sgp41VOCIndex == 0 ? "N/A " : String(sgp41VOCIndex) + " ");
-  Serial.print("SGP41 NOX Index: ");
-  Serial.print(sgp41NOXIndex == 0 ? "N/A | " : String(sgp41NOXIndex) + " | ");
-
-  Serial.print("SFA30 Temperature: ");
-  Serial.print(isnan(sfa30Temperature) ? "N/A " : String(sfa30Temperature) + "C ");
-  Serial.print("Humidity: ");
-  Serial.print(isnan(sfa30Humidity) ? "N/A " : String(sfa30Humidity) + "% ");
-  Serial.print("CH2O Concentration: ");
-  Serial.println(isnan(sfa30CH2OConcentration) ? "N/A | " : String(sfa30CH2OConcentration) + "ppb | ");
-
-  Serial.print("BMP390 Temperature: ");
-  Serial.print(isnan(bmp390Temperature) ? "N/A " : String(bmp390Temperature) + "C ");
-  Serial.print("Pressure: ");
-  Serial.print(isnan(bmp390Pressure) ? "N/A | " : String(bmp390Pressure) + "Pa | ");
-
-  Serial.print("TSL2561 Illuminance: ");
-  Serial.print(isnan(tsl2561Illuminance) ? "N/A" : String(tsl2561Illuminance) + "lx");
-
-  Serial.println();
-}
-
-void initializeCloudVariables() {
-  cloud_systemReset = false;
-  cloud_displayControl = true;
-  cloud_sht45Temperature = 0.0;
-  cloud_sht45Humidity = 0.0;
-  cloud_scd41Temperature = 0.0;
-  cloud_scd41Humidity = 0.0;
-  cloud_scd41CO2Concentration = 0;
-  cloud_sgp41VOCRaw = 0;
-  cloud_sgp41VOCIndex = 0;
-  cloud_sgp41NOXRaw = 0;
-  cloud_sgp41NOXIndex = 0;
-  cloud_sfa30Temperature = 0.0;
-  cloud_sfa30Humidity = 0.0;
-  cloud_sfa30CH2OConcentration = 0.0;
-  cloud_bmp390Temperature = 0.0;
-  cloud_bmp390Pressure = 0.0;
-  cloud_tsl2561Illuminance = 0.0;
-}
 
 void updateCloudVariables() {
   cloud_sht45Temperature = sht45Temperature;
@@ -153,62 +50,134 @@ void updateCloudVariables() {
   cloud_sgp41VOCIndex = sgp41VOCIndex;
   cloud_sgp41NOXRaw = sgp41NOXRaw;
   cloud_sgp41NOXIndex = sgp41NOXIndex;
-  cloud_sfa30Temperature = sfa30Temperature;
-  cloud_sfa30Humidity = sfa30Humidity;
-  cloud_sfa30CH2OConcentration = sfa30CH2OConcentration;
+  cloud_wzCH2OConcentration = wzCH2OConcentration;
   cloud_bmp390Temperature = bmp390Temperature;
   cloud_bmp390Pressure = bmp390Pressure;
   cloud_tsl2561Illuminance = tsl2561Illuminance;
 }
 
-void onCloudSystemResetChange() {
-  if (cloud_systemReset) {
-    NVIC_SystemReset();
-  }
-}
-
-void onCloudDisplayControlChange() {
-  if (cloud_displayControl) {
-    u8g2.setPowerSave(0);
-    matrix.loadSequence(frames);
-    matrix.play(true);
-  } else {
-    u8g2.setPowerSave(1);
-    matrix.clear();
-  }
+void initializeLED() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(RED_LED_PIN, OUTPUT);
+  pinMode(YELLOW_LED_PIN, OUTPUT);
+  pinMode(GREEN_LED_PIN, OUTPUT);
+  pinMode(BLUE_LED_PIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(RED_LED_PIN, LOW);
+  digitalWrite(YELLOW_LED_PIN, LOW);
+  digitalWrite(GREEN_LED_PIN, LOW);
+  digitalWrite(BLUE_LED_PIN, LOW);
 }
 
 void checkCloudConnection() {
-  static unsigned long lastCloudConnectedTime = 0;
+  static uint32_t lastCloudConnectedTime = 0;
 
   if (ArduinoCloud.connected()) {
     lastCloudConnectedTime = millis();
+    digitalWrite(YELLOW_LED_PIN, LOW);
+    digitalWrite(GREEN_LED_PIN, HIGH);
   } else {
+    digitalWrite(YELLOW_LED_PIN, HIGH);
+    digitalWrite(GREEN_LED_PIN, LOW);
     if (millis() - lastCloudConnectedTime >= 120 * 1000) {
       Serial.println(F("Cloud connection lost for 120 seconds. System will reset."));
+      digitalWrite(RED_LED_PIN, HIGH);
+      delay(10 * 1000);
+      digitalWrite(RED_LED_PIN, LOW);
       NVIC_SystemReset();
     }
   }
 }
 
+void onCloudSystemResetChange() {
+  if (cloud_systemReset) {
+    digitalWrite(RED_LED_PIN, HIGH);
+    delay(10 * 1000);
+    digitalWrite(RED_LED_PIN, LOW);
+    NVIC_SystemReset();
+  }
+}
+
+void initializeLEDMatrix() {
+  if (matrix.begin()) {
+    matrix.loadSequence(frames);
+    matrix.play(true);
+  } else {
+    Serial.println(F("LED Matrix initialization failed."));
+  }
+}
+
+void initializeOLED(U8G2_SH1106_128X64_NONAME_2_HW_I2C& oled) {
+  oled.setI2CAddress(0x3C * 2);
+  if (oled.begin()) {
+    oled.enableUTF8Print();
+  } else {
+    Serial.println(F("OLED initialization failed."));
+  }
+}
+
+void displayDataOnScreen() {
+  oled.firstPage();
+  do {
+    oled.setFont(u8g2_font_profont11_mf);
+    oled.setFontPosTop();
+
+    oled.setCursor(0, 0);
+    oled.print("SHT45 ");
+    oled.print(String(sht45Temperature, 2) + "C ");
+    oled.print(String(sht45Humidity, 2) + "%");
+
+    oled.setCursor(0, 9);
+    oled.print("SCD41 ");
+    oled.print(String(scd41Temperature, 2) + "C ");
+    oled.print(String(scd41Humidity, 2) + "%");
+
+    oled.setCursor(0, 18);
+    oled.print("SCD41 CO2 ");
+    oled.print(String(scd41CO2Concentration, 0) + "PPM");
+
+    oled.setCursor(0, 27);
+    oled.print("SGP41 VOC ");
+    oled.print(String(sgp41VOCIndex, 0) + " ");
+    oled.print("NOX ");
+    oled.print(String(sgp41NOXIndex, 0));
+
+    oled.setCursor(0, 36);
+    oled.print("WZ CH2O ");
+    oled.print(String(wzCH2OConcentration, 0) + "PPB");
+
+    oled.setCursor(0, 45);
+    oled.print("BMP390 ");
+    oled.print(String(bmp390Temperature, 2) + "C ");
+    oled.print(String(bmp390Pressure, 0) + "PA");
+
+    oled.setCursor(0, 54);
+    oled.print("TSL2561 ");
+    oled.print(String(tsl2561Illuminance, 0) + "LX");
+
+  } while (oled.nextPage());
+}
+
 void setup() {
   Serial.begin(9600);
-  delay(1000);
-  if (clearI2C() == 0) {
-    Wire.begin();
-  }
+  Serial1.begin(9600);
 
-  initializeSHT4x(sht45);
-  initializeSCD4x(scd41);
-  initializeSGP41(sgp41);
-  initializeSFA3x(sfa30);
-  initializeBMP3xx(bmp390);
-  initializeTSL2561(tsl2561);
-  initializeOLED(u8g2);
+  initializeLED();
   initializeLEDMatrix();
 
+  if (clearI2C() == 0) {
+    Wire.begin();
+    initializeSHT4x(sht45);
+    initializeSCD4x(scd41);
+    initializeSGP41(sgp41);
+    initializeWZ(wz);
+    initializeBMP3xx(bmp390);
+    initializeTSL2561(tsl2561);
+    initializeOLED(oled);
+    i2cInitialized = true;
+  }
+
   initProperties();
-  initializeCloudVariables();
   ArduinoCloud.begin(ArduinoIoTPreferredConnection, false);
   ArduinoCloud.printDebugInfo();
 
@@ -216,52 +185,27 @@ void setup() {
 }
 
 void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(10);
+  digitalWrite(LED_BUILTIN, LOW);
+
   static uint16_t sgp41ConditioningTime = 5;
-  static unsigned long lastSHT45ReadTime = 0;
-  static unsigned long lastSCD41ReadTime = 0;
-  static unsigned long lastSGP41ReadTime = 0;
-  static unsigned long lastSFA30ReadTime = 0;
-  static unsigned long lastBMP390ReadTime = 0;
-  static unsigned long lastTSL2561ReadTime = 0;
-  const unsigned long readInterval = 1000;
-  unsigned long currentMillis = millis();
+  static uint32_t lastReadTime = 0;
 
-  if (currentMillis - lastSHT45ReadTime >= readInterval) {
-    lastSHT45ReadTime = currentMillis;
+  if (i2cInitialized && (millis() - lastReadTime >= 1000)) {
+    lastReadTime = millis();
+    digitalWrite(BLUE_LED_PIN, HIGH);
     readSHT4xData(sht45, sht45Temperature, sht45Humidity);
-  }
-
-  if (currentMillis - lastSCD41ReadTime >= readInterval) {
-    lastSCD41ReadTime = currentMillis;
     readSCD4xData(scd41, scd41Temperature, scd41Humidity, scd41CO2Concentration);
-  }
-
-  if (currentMillis - lastSGP41ReadTime >= readInterval) {
-    lastSGP41ReadTime = currentMillis;
     readSGP41Data(sgp41, vocAlgorithm, noxAlgorithm, sht45Temperature, sht45Humidity, sgp41VOCRaw, sgp41NOXRaw, sgp41VOCIndex, sgp41NOXIndex, sgp41ConditioningTime);
-  }
-
-  if (currentMillis - lastSFA30ReadTime >= readInterval) {
-    lastSFA30ReadTime = currentMillis;
-    readSFA3xData(sfa30, sfa30Temperature, sfa30Humidity, sfa30CH2OConcentration);
-  }
-
-  if (currentMillis - lastBMP390ReadTime >= readInterval) {
-    lastBMP390ReadTime = currentMillis;
+    readWZData(wz, wzCH2OConcentration);
     readBMP3xxData(bmp390, bmp390Temperature, bmp390Pressure);
-  }
-
-  if (currentMillis - lastTSL2561ReadTime >= readInterval) {
-    lastTSL2561ReadTime = currentMillis;
     readTSL2561Data(tsl2561, tsl2561Illuminance);
-  }
-
-  if (cloud_displayControl) {
+    updateCloudVariables();
     displayDataOnScreen();
-    displayDataOnSerial();
+    digitalWrite(BLUE_LED_PIN, LOW);
   }
 
   checkCloudConnection();
-  updateCloudVariables();
   ArduinoCloud.update();
 }
