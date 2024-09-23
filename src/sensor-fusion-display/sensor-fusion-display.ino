@@ -47,8 +47,8 @@ void updateCloudVariables() {
   cloud_scd41Humidity = scd41Humidity;
   cloud_scd41CO2Concentration = scd41CO2Concentration;
   cloud_sgp41VOCRaw = sgp41VOCRaw;
-  cloud_sgp41VOCIndex = sgp41VOCIndex;
   cloud_sgp41NOXRaw = sgp41NOXRaw;
+  cloud_sgp41VOCIndex = sgp41VOCIndex;
   cloud_sgp41NOXIndex = sgp41NOXIndex;
   cloud_wzCH2OConcentration = wzCH2OConcentration;
   cloud_bmp390Temperature = bmp390Temperature;
@@ -167,12 +167,12 @@ void setup() {
 
   if (clearI2C() == 0) {
     Wire.begin();
-    initializeSHT4x(sht45);
-    initializeSCD4x(scd41);
-    initializeSGP41(sgp41);
+    initializeSHT4x(sht45, Wire);
+    initializeSCD4x(scd41, Wire);
+    initializeSGP41(sgp41, Wire);
     initializeWZ(wz);
-    initializeBMP3xx(bmp390);
-    initializeTSL2561(tsl2561);
+    initializeBMP3xx(bmp390, Wire);
+    initializeTSL2561(tsl2561, Wire);
     initializeOLED(oled);
     i2cInitialized = true;
   }
