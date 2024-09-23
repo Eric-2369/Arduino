@@ -133,8 +133,9 @@ void setup() {
 
 void loop() {
   digitalWrite(LED_BUILTIN, HIGH);
-  delay(10);
+  delayMicroseconds(10000);
   digitalWrite(LED_BUILTIN, LOW);
+  delayMicroseconds(10000);
 
   static uint32_t lastReadTime = 0;
 
