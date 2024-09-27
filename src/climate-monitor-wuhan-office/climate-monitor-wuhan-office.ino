@@ -46,12 +46,10 @@ void updateCloudVariables() {
 }
 
 void initializeLED() {
-  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(RED_LED_PIN, OUTPUT);
   pinMode(YELLOW_LED_PIN, OUTPUT);
   pinMode(GREEN_LED_PIN, OUTPUT);
   pinMode(BLUE_LED_PIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
   digitalWrite(RED_LED_PIN, LOW);
   digitalWrite(YELLOW_LED_PIN, LOW);
   digitalWrite(GREEN_LED_PIN, LOW);
@@ -132,16 +130,15 @@ void setup() {
 }
 
 void loop() {
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(BLUE_LED_PIN, HIGH);
   delayMicroseconds(10000);
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(BLUE_LED_PIN, LOW);
   delayMicroseconds(10000);
 
   static uint32_t lastReadTime = 0;
 
   if (i2cInitialized && (millis() - lastReadTime >= 1000)) {
     lastReadTime = millis();
-    digitalWrite(BLUE_LED_PIN, HIGH);
     readSHT4xData(sht40, sht40Temperature, sht40Humidity);
     readSCD4xData(scd40, scd40Temperature, scd40Humidity, scd40CO2Concentration);
     readSGP40Data(sgp40, vocAlgorithm, sht40Temperature, sht40Humidity, sgp40VOCRaw, sgp40VOCIndex);
@@ -149,7 +146,6 @@ void loop() {
     readTSL2561Data(tsl2561, tsl2561Illuminance);
     updateCloudVariables();
     displayDataOnScreen();
-    digitalWrite(BLUE_LED_PIN, LOW);
   }
 
   checkCloudConnection();
