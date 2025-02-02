@@ -5,6 +5,10 @@
 # Check if clang-format is installed
 if ! command -v clang-format &> /dev/null; then
     echo "clang-format could not be found. Please install it first."
+    echo "Installation instructions:"
+    echo "  - Debian/Ubuntu: sudo apt install clang-format"
+    echo "  - macOS: brew install clang-format (requires Homebrew)"
+    echo "  - Windows: Download and install LLVM from https://releases.llvm.org/"
     exit 1
 fi
 
