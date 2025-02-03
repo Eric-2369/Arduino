@@ -5,7 +5,7 @@
 #include <LiquidCrystal_PCF8574.h>
 
 SensirionI2cSht4x sht40;
-SensirionI2CScd4x scd40;
+SensirionI2cScd4x scd40;
 SensirionI2CSgp40 sgp40;
 Adafruit_BMP3XX bmp390;
 Adafruit_TSL2561_Unified tsl2561 = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 2561);

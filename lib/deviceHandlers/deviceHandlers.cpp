@@ -67,8 +67,8 @@ uint8_t initializeSHT4x(SensirionI2cSht4x& sht4x, TwoWire& wire) {
   return 0;
 }
 
-uint8_t initializeSCD4x(SensirionI2CScd4x& scd4x, TwoWire& wire) {
-  scd4x.begin(wire);
+uint8_t initializeSCD4x(SensirionI2cScd4x& scd4x, TwoWire& wire) {
+  scd4x.begin(wire, SCD40_I2C_ADDR_62);
   uint16_t stopError = scd4x.stopPeriodicMeasurement();
   uint16_t startError = scd4x.startPeriodicMeasurement();
   if (stopError || startError) {
@@ -166,12 +166,12 @@ uint8_t readSHT4xData(SensirionI2cSht4x& sht4x, float& temperature, float& humid
   }
 }
 
-uint8_t readSCD4xData(SensirionI2CScd4x& scd4x, float& temperature, float& humidity, float& co2Concentration) {
+uint8_t readSCD4xData(SensirionI2cScd4x& scd4x, float& temperature, float& humidity, float& co2Concentration) {
   float tempTemperature = 0.0f;
   float tempHumidity = 0.0f;
   uint16_t tempCO2Concentration = 0;
   bool isDataReady = false;
-  scd4x.getDataReadyFlag(isDataReady);
+  scd4x.getDataReadyStatus(isDataReady);
   if (isDataReady) {
     uint16_t error = scd4x.readMeasurement(tempCO2Concentration, tempTemperature, tempHumidity);
     if (error == 0) {
