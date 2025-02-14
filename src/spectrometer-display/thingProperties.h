@@ -3,20 +3,16 @@
 #include <ArduinoIoTCloud.h>
 #include <Arduino_ConnectionHandler.h>
 
+const char SSID[]     = SECRET_SSID;    // Network SSID (name)
+const char PASS[]     = SECRET_OPTIONAL_PASS;    // Network password (use for WPA, or use as key for WEP)
+
 
 
 void initProperties(){
 
 
+
+
 }
 
-////////////////////////////ATTENTION!!!////////////////////////////////
-// ATTENTION: No device is currently associated to this Thing,        //
-// hence the Connection Handler code could not be generated           //
-// Please associate an existing or new device or manually create your //
-// instance of Connection Handler                                     //
-// Eg.                                                                // 
-// WiFiConnectionHandler ArduinoIoTPreferredConnection(SSID, PASS);   //
-////////////////////////////////////////////////////////////////////////
-
-#error "No device is currently associated to this Thing, hence the Connection Handler code could not be generated"
+WiFiConnectionHandler ArduinoIoTPreferredConnection(SSID, PASS);
