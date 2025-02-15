@@ -13,6 +13,7 @@ TARGET_DIRS=(
     "src/climate-monitor-wuhan"
     "src/climate-monitor-wuhan-office"
     "src/sensor-fusion-display"
+    "src/spectrometer-display"
     # Add more target directories here
 )
 
