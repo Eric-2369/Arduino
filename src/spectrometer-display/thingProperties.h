@@ -10,7 +10,8 @@ void onCloudSystemResetChange();
 
 CloudSwitch cloud_systemReset;
 CloudTemperatureSensor cloud_as72651Temperature;
-CloudTemperatureSensor cloud_as7265xTemperature;
+CloudTemperatureSensor cloud_as72652Temperature;
+CloudTemperatureSensor cloud_as72653Temperature;
 CloudCounter cloud_as72653Spectrum410Irradiance;
 CloudCounter cloud_as72653Spectrum435Irradiance;
 CloudCounter cloud_as72653Spectrum460Irradiance;
@@ -33,7 +34,8 @@ CloudCounter cloud_as72652Spectrum940Irradiance;
 void initProperties() {
   ArduinoCloud.addProperty(cloud_systemReset, READWRITE, 1 * SECONDS, onCloudSystemResetChange);
   ArduinoCloud.addProperty(cloud_as72651Temperature, READ, 1 * SECONDS, NULL);
-  ArduinoCloud.addProperty(cloud_as7265xTemperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72652Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72653Temperature, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_as72653Spectrum410Irradiance, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_as72653Spectrum435Irradiance, READ, 1 * SECONDS, NULL);
   ArduinoCloud.addProperty(cloud_as72653Spectrum460Irradiance, READ, 1 * SECONDS, NULL);

@@ -24,7 +24,8 @@ const uint16_t spectrumColors[18] = {
 bool i2cInitialized = false;
 
 float as72651Temperature = NAN;
-float as7265xTemperature = NAN;
+float as72652Temperature = NAN;
+float as72653Temperature = NAN;
 float as72653Spectrum410Irradiance = NAN;
 float as72653Spectrum435Irradiance = NAN;
 float as72653Spectrum460Irradiance = NAN;
@@ -46,7 +47,8 @@ float as72652Spectrum940Irradiance = NAN;
 
 void updateCloudVariables() {
   cloud_as72651Temperature = as72651Temperature;
-  cloud_as7265xTemperature = as7265xTemperature;
+  cloud_as72652Temperature = as72652Temperature;
+  cloud_as72653Temperature = as72653Temperature;
   cloud_as72653Spectrum410Irradiance = as72653Spectrum410Irradiance;
   cloud_as72653Spectrum435Irradiance = as72653Spectrum435Irradiance;
   cloud_as72653Spectrum460Irradiance = as72653Spectrum460Irradiance;
@@ -88,7 +90,7 @@ void onCloudSystemResetChange() {
   }
 }
 
-void drawSpectrumHistogram() {
+void displayDataOnScreen() {
   lcd.fillScreen(ST77XX_BLACK);  // 清屏
 
   int barWidth = 6;        // 每个柱状条的宽度
@@ -104,7 +106,7 @@ void drawSpectrumHistogram() {
     lcd.print(wavelengths[i]);
   }
 
-  // 绘制柱状图
+  // 获取光谱数据
   float spectrumData[18] = {
     as72653Spectrum410Irradiance,
     as72653Spectrum435Irradiance,
@@ -126,9 +128,10 @@ void drawSpectrumHistogram() {
     as72652Spectrum940Irradiance
   };
 
+  // 绘制柱状图
   for (int i = 0; i < 18; i++) {
-    int barHeight = spectrumData[i] * maxBarHeight;          // 计算柱状条高度
-    if (barHeight > maxBarHeight) barHeight = maxBarHeight;  // 限制最大高度
+    int barHeight = (spectrumData[i] / 65535.0) * maxBarHeight;  // 归一化到 maxBarHeight
+    if (barHeight > maxBarHeight) barHeight = maxBarHeight;      // 限制最大高度
 
     int x = xOffset;                       // 柱状条 X 坐标
     int y = yOffset + i * (barWidth + 2);  // 柱状条 Y 坐标
@@ -181,30 +184,31 @@ void loop() {
 
   if (i2cInitialized && (millis() - lastReadTime >= 1000)) {
     lastReadTime = millis();
-    as7265x.takeMeasurements();
-    as72653Spectrum410Irradiance = as7265x.getCalibratedA() / 1000.0;
-    as72653Spectrum435Irradiance = as7265x.getCalibratedB() / 1000.0;
-    as72653Spectrum460Irradiance = as7265x.getCalibratedC() / 1000.0;
-    as72653Spectrum485Irradiance = as7265x.getCalibratedD() / 1000.0;
-    as72653Spectrum510Irradiance = as7265x.getCalibratedE() / 1000.0;
-    as72653Spectrum535Irradiance = as7265x.getCalibratedF() / 1000.0;
-    as72652Spectrum560Irradiance = as7265x.getCalibratedG() / 1000.0;
-    as72652Spectrum585Irradiance = as7265x.getCalibratedH() / 1000.0;
-    as72651Spectrum610Irradiance = as7265x.getCalibratedR() / 1000.0;
-    as72652Spectrum645Irradiance = as7265x.getCalibratedI() / 1000.0;
-    as72651Spectrum680Irradiance = as7265x.getCalibratedS() / 1000.0;
-    as72652Spectrum705Irradiance = as7265x.getCalibratedJ() / 1000.0;
-    as72651Spectrum730Irradiance = as7265x.getCalibratedT() / 1000.0;
-    as72651Spectrum760Irradiance = as7265x.getCalibratedU() / 1000.0;
-    as72651Spectrum810Irradiance = as7265x.getCalibratedV() / 1000.0;
-    as72651Spectrum860Irradiance = as7265x.getCalibratedW() / 1000.0;
-    as72652Spectrum900Irradiance = as7265x.getCalibratedK() / 1000.0;
-    as72652Spectrum940Irradiance = as7265x.getCalibratedL() / 1000.0;
-    as72651Temperature = as7265x.getTemperature();
-    as7265xTemperature = as7265x.getTemperatureAverage();
+
+    as72651Temperature = as7265x.getTemperature(AS72651_NIR);
+    as72652Temperature = as7265x.getTemperature(AS72652_VISIBLE);
+    as72653Temperature = as7265x.getTemperature(AS72653_UV);
+    as72653Spectrum410Irradiance = as7265x.getCalibratedA();
+    as72653Spectrum435Irradiance = as7265x.getCalibratedB();
+    as72653Spectrum460Irradiance = as7265x.getCalibratedC();
+    as72653Spectrum485Irradiance = as7265x.getCalibratedD();
+    as72653Spectrum510Irradiance = as7265x.getCalibratedE();
+    as72653Spectrum535Irradiance = as7265x.getCalibratedF();
+    as72652Spectrum560Irradiance = as7265x.getCalibratedG();
+    as72652Spectrum585Irradiance = as7265x.getCalibratedH();
+    as72651Spectrum610Irradiance = as7265x.getCalibratedR();
+    as72652Spectrum645Irradiance = as7265x.getCalibratedI();
+    as72651Spectrum680Irradiance = as7265x.getCalibratedS();
+    as72652Spectrum705Irradiance = as7265x.getCalibratedJ();
+    as72651Spectrum730Irradiance = as7265x.getCalibratedT();
+    as72651Spectrum760Irradiance = as7265x.getCalibratedU();
+    as72651Spectrum810Irradiance = as7265x.getCalibratedV();
+    as72651Spectrum860Irradiance = as7265x.getCalibratedW();
+    as72652Spectrum900Irradiance = as7265x.getCalibratedK();
+    as72652Spectrum940Irradiance = as7265x.getCalibratedL();
 
     updateCloudVariables();
-    drawSpectrumHistogram();
+    displayDataOnScreen();
   }
 
   checkCloudConnection();
