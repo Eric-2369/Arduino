@@ -111,7 +111,7 @@ void setup() {
 
   initializeLED();
 
-  if (clearI2C() == 0) {
+  if (clearI2C(PIN_WIRE_SDA, PIN_WIRE_SCL) == 0) {
     Wire.begin();
     initializeSHT4x(sht40, Wire);
     initializeSCD4x(scd40, Wire);

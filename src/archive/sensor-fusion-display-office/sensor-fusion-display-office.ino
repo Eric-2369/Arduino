@@ -137,7 +137,7 @@ void checkCloudConnection() {
 void setup() {
   Serial.begin(9600);
   delay(1000);
-  if (clearI2C() == 0) {
+  if (clearI2C(PIN_WIRE_SDA, PIN_WIRE_SCL) == 0) {
     Wire.begin();
   }
 

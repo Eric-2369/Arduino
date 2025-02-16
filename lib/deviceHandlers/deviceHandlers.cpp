@@ -1,42 +1,42 @@
 #include "deviceHandlers.h"
 
-uint8_t clearI2C() {
-  pinMode(SDA, INPUT_PULLUP);
-  pinMode(SCL, INPUT_PULLUP);
+uint8_t clearI2C(uint8_t sdaPin, uint8_t sclPin) {
+  pinMode(sdaPin, INPUT_PULLUP);
+  pinMode(sclPin, INPUT_PULLUP);
 
   delay(2000);
 
-  boolean SCL_LOW = (digitalRead(SCL) == LOW);
+  boolean SCL_LOW = (digitalRead(sclPin) == LOW);
   if (SCL_LOW) {
     Serial.println(F("I2C bus error. Could not clear"));
     Serial.println(F("SCL clock line held low"));
     return 1;
   }
 
-  boolean SDA_LOW = (digitalRead(SDA) == LOW);
+  boolean SDA_LOW = (digitalRead(sdaPin) == LOW);
   int clockCount = 20;
 
   while (SDA_LOW && (clockCount > 0)) {
     clockCount--;
-    pinMode(SCL, INPUT);
-    pinMode(SCL, OUTPUT);
+    pinMode(sclPin, INPUT);
+    pinMode(sclPin, OUTPUT);
     delayMicroseconds(10);
-    pinMode(SCL, INPUT);
-    pinMode(SCL, INPUT_PULLUP);
+    pinMode(sclPin, INPUT);
+    pinMode(sclPin, INPUT_PULLUP);
     delayMicroseconds(10);
-    SCL_LOW = (digitalRead(SCL) == LOW);
+    SCL_LOW = (digitalRead(sclPin) == LOW);
     int counter = 20;
     while (SCL_LOW && (counter > 0)) {
       counter--;
       delay(100);
-      SCL_LOW = (digitalRead(SCL) == LOW);
+      SCL_LOW = (digitalRead(sclPin) == LOW);
     }
     if (SCL_LOW) {
       Serial.println(F("I2C bus error. Could not clear"));
       Serial.println(F("SCL clock line held low by slave clock stretch"));
       return 2;
     }
-    SDA_LOW = (digitalRead(SDA) == LOW);
+    SDA_LOW = (digitalRead(sdaPin) == LOW);
   }
   if (SDA_LOW) {
     Serial.println(F("I2C bus error. Could not clear"));
@@ -44,14 +44,14 @@ uint8_t clearI2C() {
     return 3;
   }
 
-  pinMode(SDA, INPUT);
-  pinMode(SDA, OUTPUT);
+  pinMode(sdaPin, INPUT);
+  pinMode(sdaPin, OUTPUT);
   delayMicroseconds(10);
-  pinMode(SDA, INPUT);
-  pinMode(SDA, INPUT_PULLUP);
+  pinMode(sdaPin, INPUT);
+  pinMode(sdaPin, INPUT_PULLUP);
   delayMicroseconds(10);
-  pinMode(SDA, INPUT);
-  pinMode(SCL, INPUT);
+  pinMode(sdaPin, INPUT);
+  pinMode(sclPin, INPUT);
 
   Serial.println(F("I2C bus cleared successfully"));
   return 0;

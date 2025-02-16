@@ -166,7 +166,7 @@ void displayDataOnScreen() {
 void setup() {
   Serial.begin(9600);
 
-  if (clearI2C() == 0) {
+  if (clearI2C(WIRE1_SDA_PIN, WIRE1_SCL_PIN) == 0) {
     Wire1.begin();
     initializeAS7265X(as7265x, Wire1);
     initializeLCD(lcd);
