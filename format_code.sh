@@ -13,7 +13,7 @@ if ! command -v clang-format &> /dev/null; then
 fi
 
 # Define the source directory
-SRC_DIR="./src"
+SRC_DIR="."
 
 # Check if the source directory exists
 if [ ! -d "$SRC_DIR" ]; then

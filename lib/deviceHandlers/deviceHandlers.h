@@ -10,6 +10,7 @@
 #include <Adafruit_BMP3XX.h>
 #include <Adafruit_TSL2561_U.h>
 #include <Adafruit_TSL2591.h>
+#include <SparkFun_AS7265X.h>
 
 #include <VOCGasIndexAlgorithm.h>
 #include <NOxGasIndexAlgorithm.h>
@@ -25,6 +26,7 @@ uint8_t initializeWZ(WZ& wz);
 uint8_t initializeBMP3xx(Adafruit_BMP3XX& bmp3xx, TwoWire& wire);
 uint8_t initializeTSL2561(Adafruit_TSL2561_Unified& tsl2561, TwoWire& wire);
 uint8_t initializeTSL2591(Adafruit_TSL2591& tsl2591, TwoWire& wire);
+uint8_t initializeAS7265X(AS7265X& as7265x, TwoWire& wire);
 
 uint8_t readSHT4xData(SensirionI2cSht4x& sht4x, float& temperature, float& humidity);
 uint8_t readSCD4xData(SensirionI2cScd4x& scd4x, float& temperature, float& humidity, float& co2Concentration);
@@ -35,5 +37,6 @@ uint8_t readWZData(WZ& wz, float& ch2oConcentration);
 uint8_t readBMP3xxData(Adafruit_BMP3XX& bmp3xx, float& temperature, float& pressure);
 uint8_t readTSL2561Data(Adafruit_TSL2561_Unified& tsl2561, float& illuminance);
 uint8_t readTSL2591Data(Adafruit_TSL2591& tsl2591, float& illuminance);
+uint8_t readAS7265XData(AS7265X& as7265x, float& as72651Temperature, float& as72652Temperature, float& as72653Temperature, float& as72653Spectrum410Irradiance, float& as72653Spectrum435Irradiance, float& as72653Spectrum460Irradiance, float& as72653Spectrum485Irradiance, float& as72653Spectrum510Irradiance, float& as72653Spectrum535Irradiance, float& as72652Spectrum560Irradiance, float& as72652Spectrum585Irradiance, float& as72651Spectrum610Irradiance, float& as72652Spectrum645Irradiance, float& as72651Spectrum680Irradiance, float& as72652Spectrum705Irradiance, float& as72651Spectrum730Irradiance, float& as72651Spectrum760Irradiance, float& as72651Spectrum810Irradiance, float& as72651Spectrum860Irradiance, float& as72652Spectrum900Irradiance, float& as72652Spectrum940Irradiance);
 
 #endif  // DEVICE_HANDLERS_H

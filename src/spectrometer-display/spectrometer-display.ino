@@ -89,6 +89,12 @@ void onCloudSystemResetChange() {
   }
 }
 
+void initializeLCD(Adafruit_ST7735& lcd) {
+  lcd.initR(INITR_BLACKTAB);
+  lcd.setRotation(0);
+  lcd.fillScreen(ST77XX_BLACK);
+}
+
 void displayDataOnScreen() {
   lcd.fillScreen(ST77XX_BLACK);  // 清屏
 
@@ -161,30 +167,9 @@ void setup() {
   Serial.begin(9600);
 
   if (clearI2C() == 0) {
-    Wire.begin();
     Wire1.begin();
-    if (!as7265x.begin(Wire1)) {
-      Serial.println("传感器未连接，请检查接线。");
-      while (1);
-    }
-
-    as7265x.setGain(AS7265X_GAIN_1X);
-    as7265x.setIntegrationCycles(255);
-    as7265x.setMeasurementMode(AS7265X_MEASUREMENT_MODE_6CHAN_CONTINUOUS);
-    as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_WHITE);
-    as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_IR);
-    as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_UV);
-    as7265x.setIndicatorCurrent(AS7265X_INDICATOR_CURRENT_LIMIT_1MA);
-    as7265x.disableBulb(AS7265x_LED_WHITE);
-    as7265x.disableBulb(AS7265x_LED_IR);
-    as7265x.disableBulb(AS7265x_LED_UV);
-    as7265x.disableIndicator();
-    as7265x.disableInterrupt();
-
-    lcd.initR(INITR_BLACKTAB);
-    lcd.setRotation(0);
-    lcd.fillScreen(ST77XX_BLACK);
-
+    initializeAS7265X(as7265x, Wire1);
+    initializeLCD(lcd);
     i2cInitialized = true;
   }
 
@@ -200,29 +185,7 @@ void loop() {
 
   if (i2cInitialized && (millis() - lastReadTime >= 1000)) {
     lastReadTime = millis();
-
-    as72651Temperature = as7265x.getTemperature(AS72651_NIR);
-    as72652Temperature = as7265x.getTemperature(AS72652_VISIBLE);
-    as72653Temperature = as7265x.getTemperature(AS72653_UV);
-    as72653Spectrum410Irradiance = as7265x.getCalibratedA();
-    as72653Spectrum435Irradiance = as7265x.getCalibratedB();
-    as72653Spectrum460Irradiance = as7265x.getCalibratedC();
-    as72653Spectrum485Irradiance = as7265x.getCalibratedD();
-    as72653Spectrum510Irradiance = as7265x.getCalibratedE();
-    as72653Spectrum535Irradiance = as7265x.getCalibratedF();
-    as72652Spectrum560Irradiance = as7265x.getCalibratedG();
-    as72652Spectrum585Irradiance = as7265x.getCalibratedH();
-    as72651Spectrum610Irradiance = as7265x.getCalibratedR();
-    as72652Spectrum645Irradiance = as7265x.getCalibratedI();
-    as72651Spectrum680Irradiance = as7265x.getCalibratedS();
-    as72652Spectrum705Irradiance = as7265x.getCalibratedJ();
-    as72651Spectrum730Irradiance = as7265x.getCalibratedT();
-    as72651Spectrum760Irradiance = as7265x.getCalibratedU();
-    as72651Spectrum810Irradiance = as7265x.getCalibratedV();
-    as72651Spectrum860Irradiance = as7265x.getCalibratedW();
-    as72652Spectrum900Irradiance = as7265x.getCalibratedK();
-    as72652Spectrum940Irradiance = as7265x.getCalibratedL();
-
+    readAS7265XData(as7265x, as72651Temperature, as72652Temperature, as72653Temperature, as72653Spectrum410Irradiance, as72653Spectrum435Irradiance, as72653Spectrum460Irradiance, as72653Spectrum485Irradiance, as72653Spectrum510Irradiance, as72653Spectrum535Irradiance, as72652Spectrum560Irradiance, as72652Spectrum585Irradiance, as72651Spectrum610Irradiance, as72652Spectrum645Irradiance, as72651Spectrum680Irradiance, as72652Spectrum705Irradiance, as72651Spectrum730Irradiance, as72651Spectrum760Irradiance, as72651Spectrum810Irradiance, as72651Spectrum860Irradiance, as72652Spectrum900Irradiance, as72652Spectrum940Irradiance);
     updateCloudVariables();
     displayDataOnScreen();
   }
