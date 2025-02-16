@@ -3,7 +3,6 @@
 #include "deviceHandlers.h"
 
 #include <SparkFun_AS7265X.h>
-#include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
 
 AS7265X as7265x;
@@ -16,9 +15,9 @@ const int wavelengths[18] = {
 };
 
 const uint16_t spectrumColors[18] = {
-  0x001F, 0x041F, 0x07FF, 0x07DF, 0x07E0, 0x5FE0,
-  0xFFE0, 0xFBE0, 0xF800, 0xB800, 0x7800, 0x7000,
-  0x6000, 0x4000, 0x2000, 0x1000, 0x0800, 0x0400
+  0x781B, 0x201F, 0x03DF, 0x075F, 0x07E0, 0x77E0,
+  0xC7E0, 0xFF60, 0xFCC0, 0xF800, 0xF800, 0xF000,
+  0xC800, 0x8800, 0x6000, 0x6000, 0x6000, 0x6000
 };
 
 bool i2cInitialized = false;
@@ -98,14 +97,6 @@ void displayDataOnScreen() {
   int xOffset = 22;        // X 轴起始偏移量
   int yOffset = 8;         // Y 轴起始偏移量
 
-  // 绘制 Y 轴（波长标注）
-  lcd.setTextSize(1);
-  lcd.setTextColor(ST77XX_WHITE);
-  for (int i = 0; i < 18; i++) {
-    lcd.setCursor(2, yOffset + i * (barWidth + 2));
-    lcd.print(wavelengths[i]);
-  }
-
   // 获取光谱数据
   float spectrumData[18] = {
     as72653Spectrum410Irradiance,
@@ -128,10 +119,32 @@ void displayDataOnScreen() {
     as72652Spectrum940Irradiance
   };
 
-  // 绘制柱状图
+  // 1. 找到数据中的最大值
+  float maxValue = 0;
   for (int i = 0; i < 18; i++) {
-    int barHeight = (spectrumData[i] / 65535.0) * maxBarHeight;  // 归一化到 maxBarHeight
-    if (barHeight > maxBarHeight) barHeight = maxBarHeight;      // 限制最大高度
+    if (spectrumData[i] > maxValue) {
+      maxValue = spectrumData[i];
+    }
+  }
+
+  // 2. 设置最小缩放值，防止 maxValue 过小
+  float minScale = 20.0;  // 设定最小比例尺
+  if (maxValue < minScale) {
+    maxValue = minScale;
+  }
+
+  // 3. 绘制 Y 轴（波长标注）
+  lcd.setTextSize(1);
+  lcd.setTextColor(ST77XX_WHITE);
+  for (int i = 0; i < 18; i++) {
+    lcd.setCursor(2, yOffset + i * (barWidth + 2));
+    lcd.print(wavelengths[i]);
+  }
+
+  // 4. 绘制柱状图
+  for (int i = 0; i < 18; i++) {
+    int barHeight = (spectrumData[i] / maxValue) * maxBarHeight;  // 归一化到 maxBarHeight
+    if (barHeight > maxBarHeight) barHeight = maxBarHeight;       // 限制最大高度
 
     int x = xOffset;                       // 柱状条 X 坐标
     int y = yOffset + i * (barWidth + 2);  // 柱状条 Y 坐标
@@ -156,18 +169,21 @@ void setup() {
     }
 
     as7265x.setGain(AS7265X_GAIN_1X);
-    as7265x.setMeasurementMode(AS7265X_MEASUREMENT_MODE_6CHAN_CONTINUOUS);
     as7265x.setIntegrationCycles(255);
+    as7265x.setMeasurementMode(AS7265X_MEASUREMENT_MODE_6CHAN_CONTINUOUS);
     as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_WHITE);
-    as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_UV);
     as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_IR);
+    as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_UV);
+    as7265x.setIndicatorCurrent(AS7265X_INDICATOR_CURRENT_LIMIT_1MA);
+    as7265x.disableBulb(AS7265x_LED_WHITE);
+    as7265x.disableBulb(AS7265x_LED_IR);
+    as7265x.disableBulb(AS7265x_LED_UV);
     as7265x.disableIndicator();
-    as7265x.setIndicatorCurrent(AS7265X_INDICATOR_CURRENT_LIMIT_8MA);
     as7265x.disableInterrupt();
 
     lcd.initR(INITR_BLACKTAB);
-    lcd.fillScreen(ST77XX_BLACK);
     lcd.setRotation(0);
+    lcd.fillScreen(ST77XX_BLACK);
 
     i2cInitialized = true;
   }
