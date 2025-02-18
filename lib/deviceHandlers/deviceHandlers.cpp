@@ -7,54 +7,58 @@ uint8_t clearI2C(uint8_t sdaPin, uint8_t sclPin) {
   delay(2000);
 
   boolean SCL_LOW = (digitalRead(sclPin) == LOW);
+  boolean SDA_LOW = (digitalRead(sdaPin) == LOW);
+
   if (SCL_LOW) {
     Serial.println(F("I2C bus error. Could not clear"));
     Serial.println(F("SCL clock line held low"));
     return 1;
-  }
+  } else if (SDA_LOW) {
+    int clockCount = 20;
 
-  boolean SDA_LOW = (digitalRead(sdaPin) == LOW);
-  int clockCount = 20;
-
-  while (SDA_LOW && (clockCount > 0)) {
-    clockCount--;
-    pinMode(sclPin, INPUT);
-    pinMode(sclPin, OUTPUT);
-    delayMicroseconds(10);
-    pinMode(sclPin, INPUT);
-    pinMode(sclPin, INPUT_PULLUP);
-    delayMicroseconds(10);
-    SCL_LOW = (digitalRead(sclPin) == LOW);
-    int counter = 20;
-    while (SCL_LOW && (counter > 0)) {
-      counter--;
-      delay(100);
+    while (SDA_LOW && (clockCount > 0)) {
+      clockCount--;
+      pinMode(sclPin, INPUT);
+      pinMode(sclPin, OUTPUT);
+      delayMicroseconds(10);
+      pinMode(sclPin, INPUT);
+      pinMode(sclPin, INPUT_PULLUP);
+      delayMicroseconds(10);
       SCL_LOW = (digitalRead(sclPin) == LOW);
+      int counter = 20;
+      while (SCL_LOW && (counter > 0)) {
+        counter--;
+        delay(100);
+        SCL_LOW = (digitalRead(sclPin) == LOW);
+      }
+      if (SCL_LOW) {
+        Serial.println(F("I2C bus error. Could not clear"));
+        Serial.println(F("SCL clock line held low by slave clock stretch"));
+        return 2;
+      }
+      SDA_LOW = (digitalRead(sdaPin) == LOW);
     }
-    if (SCL_LOW) {
+    if (SDA_LOW) {
       Serial.println(F("I2C bus error. Could not clear"));
-      Serial.println(F("SCL clock line held low by slave clock stretch"));
-      return 2;
+      Serial.println(F("SDA data line held low"));
+      return 3;
+    } else {
+      pinMode(sdaPin, INPUT);
+      pinMode(sdaPin, OUTPUT);
+      delayMicroseconds(10);
+      pinMode(sdaPin, INPUT);
+      pinMode(sdaPin, INPUT_PULLUP);
+      delayMicroseconds(10);
+      pinMode(sdaPin, INPUT);
+      pinMode(sclPin, INPUT);
+
+      Serial.println(F("I2C bus cleared successfully"));
+      return 0;
     }
-    SDA_LOW = (digitalRead(sdaPin) == LOW);
+  } else {
+    Serial.println(F("I2C bus was already free"));
+    return 0;
   }
-  if (SDA_LOW) {
-    Serial.println(F("I2C bus error. Could not clear"));
-    Serial.println(F("SDA data line held low"));
-    return 3;
-  }
-
-  pinMode(sdaPin, INPUT);
-  pinMode(sdaPin, OUTPUT);
-  delayMicroseconds(10);
-  pinMode(sdaPin, INPUT);
-  pinMode(sdaPin, INPUT_PULLUP);
-  delayMicroseconds(10);
-  pinMode(sdaPin, INPUT);
-  pinMode(sclPin, INPUT);
-
-  Serial.println(F("I2C bus cleared successfully"));
-  return 0;
 }
 
 uint8_t initializeSHT4x(SensirionI2cSht4x& sht4x, TwoWire& wire) {
@@ -63,8 +67,9 @@ uint8_t initializeSHT4x(SensirionI2cSht4x& sht4x, TwoWire& wire) {
   if (error) {
     Serial.println(F("SHT4x initialization failed."));
     return 1;
+  } else {
+    return 0;
   }
-  return 0;
 }
 
 uint8_t initializeSCD4x(SensirionI2cScd4x& scd4x, TwoWire& wire) {
@@ -74,8 +79,9 @@ uint8_t initializeSCD4x(SensirionI2cScd4x& scd4x, TwoWire& wire) {
   if (stopError || startError) {
     Serial.println(F("SCD4x initialization failed."));
     return 1;
+  } else {
+    return 0;
   }
-  return 0;
 }
 
 uint8_t initializeSGP40(SensirionI2CSgp40& sgp40, TwoWire& wire) {
@@ -85,8 +91,9 @@ uint8_t initializeSGP40(SensirionI2CSgp40& sgp40, TwoWire& wire) {
   if (error || testResult != 0xD400) {
     Serial.println(F("SGP40 initialization failed."));
     return 1;
+  } else {
+    return 0;
   }
-  return 0;
 }
 
 uint8_t initializeSGP41(SensirionI2CSgp41& sgp41, TwoWire& wire) {
@@ -96,8 +103,9 @@ uint8_t initializeSGP41(SensirionI2CSgp41& sgp41, TwoWire& wire) {
   if (error || testResult != 0xD400) {
     Serial.println(F("SGP41 initialization failed."));
     return 1;
+  } else {
+    return 0;
   }
-  return 0;
 }
 
 uint8_t initializeSFA3x(SensirionI2CSfa3x& sfa3x, TwoWire& wire) {
@@ -107,8 +115,9 @@ uint8_t initializeSFA3x(SensirionI2CSfa3x& sfa3x, TwoWire& wire) {
   if (stopError || startError) {
     Serial.println(F("SFA3x initialization failed."));
     return 1;
+  } else {
+    return 0;
   }
-  return 0;
 }
 
 uint8_t initializeWZ(WZ& wz) {
@@ -183,8 +192,9 @@ uint8_t readSCD4xData(SensirionI2cScd4x& scd4x, float& temperature, float& humid
       Serial.println(F("SCD4x measurement error."));
       return 1;
     }
+  } else {
+    return 0;
   }
-  return 0;
 }
 
 uint8_t readSGP40Data(SensirionI2CSgp40& sgp40, VOCGasIndexAlgorithm& vocAlgorithm, float temperature, float humidity, float& vocRaw, float& vocIndex) {
