@@ -14,7 +14,7 @@
 #include <VOCGasIndexAlgorithm.h>
 #include <NOxGasIndexAlgorithm.h>
 
-uint8_t clearI2C();
+uint8_t clearI2C(uint8_t sdaPin, uint8_t sclPin);
 
 uint8_t initializeSHT4x(SensirionI2cSht4x& sht4x, TwoWire& wire);
 uint8_t initializeSCD4x(SensirionI2cScd4x& scd4x, TwoWire& wire);
