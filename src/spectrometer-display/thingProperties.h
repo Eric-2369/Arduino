@@ -3,16 +3,57 @@
 #include <ArduinoIoTCloud.h>
 #include <Arduino_ConnectionHandler.h>
 
-const char SSID[]     = SECRET_SSID;    // Network SSID (name)
-const char PASS[]     = SECRET_OPTIONAL_PASS;    // Network password (use for WPA, or use as key for WEP)
+const char SSID[] = SECRET_SSID;           // Network SSID (name)
+const char PASS[] = SECRET_OPTIONAL_PASS;  // Network password (use for WPA, or use as key for WEP)
 
+void onCloudSystemResetChange();
 
+CloudSwitch cloud_systemReset;
+CloudTemperatureSensor cloud_as72651Temperature;
+CloudTemperatureSensor cloud_as72652Temperature;
+CloudTemperatureSensor cloud_as72653Temperature;
+CloudCounter cloud_as72653Spectrum410Irradiance;
+CloudCounter cloud_as72653Spectrum435Irradiance;
+CloudCounter cloud_as72653Spectrum460Irradiance;
+CloudCounter cloud_as72653Spectrum485Irradiance;
+CloudCounter cloud_as72653Spectrum510Irradiance;
+CloudCounter cloud_as72653Spectrum535Irradiance;
+CloudCounter cloud_as72652Spectrum560Irradiance;
+CloudCounter cloud_as72652Spectrum585Irradiance;
+CloudCounter cloud_as72651Spectrum610Irradiance;
+CloudCounter cloud_as72652Spectrum645Irradiance;
+CloudCounter cloud_as72651Spectrum680Irradiance;
+CloudCounter cloud_as72652Spectrum705Irradiance;
+CloudCounter cloud_as72651Spectrum730Irradiance;
+CloudCounter cloud_as72651Spectrum760Irradiance;
+CloudCounter cloud_as72651Spectrum810Irradiance;
+CloudCounter cloud_as72651Spectrum860Irradiance;
+CloudCounter cloud_as72652Spectrum900Irradiance;
+CloudCounter cloud_as72652Spectrum940Irradiance;
 
-void initProperties(){
-
-
-
-
+void initProperties() {
+  ArduinoCloud.addProperty(cloud_systemReset, READWRITE, 1 * SECONDS, onCloudSystemResetChange);
+  ArduinoCloud.addProperty(cloud_as72651Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72652Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72653Temperature, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72653Spectrum410Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72653Spectrum435Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72653Spectrum460Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72653Spectrum485Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72653Spectrum510Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72653Spectrum535Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72652Spectrum560Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72652Spectrum585Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72651Spectrum610Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72652Spectrum645Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72651Spectrum680Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72652Spectrum705Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72651Spectrum730Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72651Spectrum760Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72651Spectrum810Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72651Spectrum860Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72652Spectrum900Irradiance, READ, 1 * SECONDS, NULL);
+  ArduinoCloud.addProperty(cloud_as72652Spectrum940Irradiance, READ, 1 * SECONDS, NULL);
 }
 
 WiFiConnectionHandler ArduinoIoTPreferredConnection(SSID, PASS);

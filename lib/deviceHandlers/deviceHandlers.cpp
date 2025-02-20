@@ -161,6 +161,27 @@ uint8_t initializeTSL2591(Adafruit_TSL2591& tsl2591, TwoWire& wire) {
   }
 }
 
+uint8_t initializeAS7265X(AS7265X& as7265x, TwoWire& wire) {
+  if (as7265x.begin(wire)) {
+    as7265x.setGain(AS7265X_GAIN_1X);
+    as7265x.setIntegrationCycles(255);
+    as7265x.setMeasurementMode(AS7265X_MEASUREMENT_MODE_6CHAN_CONTINUOUS);
+    as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_WHITE);
+    as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_IR);
+    as7265x.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_12_5MA, AS7265x_LED_UV);
+    as7265x.setIndicatorCurrent(AS7265X_INDICATOR_CURRENT_LIMIT_1MA);
+    as7265x.disableBulb(AS7265x_LED_WHITE);
+    as7265x.disableBulb(AS7265x_LED_IR);
+    as7265x.disableBulb(AS7265x_LED_UV);
+    as7265x.disableIndicator();
+    as7265x.disableInterrupt();
+    return 0;
+  } else {
+    Serial.println(F("AS7265X initialization failed."));
+    return 1;
+  }
+}
+
 uint8_t readSHT4xData(SensirionI2cSht4x& sht4x, float& temperature, float& humidity) {
   float tempTemperature = 0.0;
   float tempHumidity = 0.0;
@@ -326,4 +347,29 @@ uint8_t readTSL2591Data(Adafruit_TSL2591& tsl2591, float& illuminance) {
     Serial.println(F("TSL2591 measurement error."));
     return 1;
   }
+}
+
+uint8_t readAS7265XData(AS7265X& as7265x, float& as72651Temperature, float& as72652Temperature, float& as72653Temperature, float& as72653Spectrum410Irradiance, float& as72653Spectrum435Irradiance, float& as72653Spectrum460Irradiance, float& as72653Spectrum485Irradiance, float& as72653Spectrum510Irradiance, float& as72653Spectrum535Irradiance, float& as72652Spectrum560Irradiance, float& as72652Spectrum585Irradiance, float& as72651Spectrum610Irradiance, float& as72652Spectrum645Irradiance, float& as72651Spectrum680Irradiance, float& as72652Spectrum705Irradiance, float& as72651Spectrum730Irradiance, float& as72651Spectrum760Irradiance, float& as72651Spectrum810Irradiance, float& as72651Spectrum860Irradiance, float& as72652Spectrum900Irradiance, float& as72652Spectrum940Irradiance) {
+  as72651Temperature = as7265x.getTemperature(AS72651_NIR);
+  as72652Temperature = as7265x.getTemperature(AS72652_VISIBLE);
+  as72653Temperature = as7265x.getTemperature(AS72653_UV);
+  as72653Spectrum410Irradiance = as7265x.getCalibratedA();
+  as72653Spectrum435Irradiance = as7265x.getCalibratedB();
+  as72653Spectrum460Irradiance = as7265x.getCalibratedC();
+  as72653Spectrum485Irradiance = as7265x.getCalibratedD();
+  as72653Spectrum510Irradiance = as7265x.getCalibratedE();
+  as72653Spectrum535Irradiance = as7265x.getCalibratedF();
+  as72652Spectrum560Irradiance = as7265x.getCalibratedG();
+  as72652Spectrum585Irradiance = as7265x.getCalibratedH();
+  as72651Spectrum610Irradiance = as7265x.getCalibratedR();
+  as72652Spectrum645Irradiance = as7265x.getCalibratedI();
+  as72651Spectrum680Irradiance = as7265x.getCalibratedS();
+  as72652Spectrum705Irradiance = as7265x.getCalibratedJ();
+  as72651Spectrum730Irradiance = as7265x.getCalibratedT();
+  as72651Spectrum760Irradiance = as7265x.getCalibratedU();
+  as72651Spectrum810Irradiance = as7265x.getCalibratedV();
+  as72651Spectrum860Irradiance = as7265x.getCalibratedW();
+  as72652Spectrum900Irradiance = as7265x.getCalibratedK();
+  as72652Spectrum940Irradiance = as7265x.getCalibratedL();
+  return 0;
 }
