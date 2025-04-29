@@ -108,11 +108,11 @@ uint8_t initializeSGP41(SensirionI2CSgp41& sgp41, TwoWire& wire) {
   }
 }
 
-uint8_t initializeSFA3x(SensirionI2CSfa3x& sfa3x, TwoWire& wire) {
-  sfa3x.begin(wire);
-  uint16_t stopError = sfa3x.stopMeasurement();
+uint8_t initializeSFA3x(SensirionI2cSfa3x& sfa3x, TwoWire& wire) {
+  sfa3x.begin(wire, SFA3X_I2C_ADDR_5D);
+  uint16_t resetError = sfa3x.deviceReset();
   uint16_t startError = sfa3x.startContinuousMeasurement();
-  if (stopError || startError) {
+  if (resetError || startError) {
     Serial.println(F("SFA3x initialization failed."));
     return 1;
   } else {
@@ -288,15 +288,15 @@ uint8_t readSGP41Data(SensirionI2CSgp41& sgp41, VOCGasIndexAlgorithm& vocAlgorit
   }
 }
 
-uint8_t readSFA3xData(SensirionI2CSfa3x& sfa3x, float& temperature, float& humidity, float& ch2oConcentration) {
-  int16_t tempTemperature = 0.0f;
-  int16_t tempHumidity = 0.0f;
-  int16_t tempCH2OConcentration = 0;
-  uint16_t error = sfa3x.readMeasuredValues(tempCH2OConcentration, tempHumidity, tempTemperature);
+uint8_t readSFA3xData(SensirionI2cSfa3x& sfa3x, float& temperature, float& humidity, float& ch2oConcentration) {
+  float tempTemperature = 0.0f;
+  float tempHumidity = 0.0f;
+  float tempCH2OConcentration = 0.0f;
+  int16_t error = sfa3x.readMeasuredValues(tempCH2OConcentration, tempHumidity, tempTemperature);
   if (error == 0) {
-    temperature = tempTemperature / 200.0;
-    humidity = tempHumidity / 100.0;
-    ch2oConcentration = tempCH2OConcentration / 5.0;
+    temperature = tempTemperature;
+    humidity = tempHumidity;
+    ch2oConcentration = tempCH2OConcentration;
     return 0;
   } else {
     Serial.println(F("SFA3x measurement error."));

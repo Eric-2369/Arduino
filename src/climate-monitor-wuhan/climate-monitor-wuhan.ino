@@ -5,7 +5,7 @@
 SensirionI2cSht4x sht45;
 SensirionI2cScd4x scd41;
 SensirionI2CSgp41 sgp41;
-SensirionI2CSfa3x sfa30;
+SensirionI2cSfa3x sfa30;
 Adafruit_BMP3XX bmp390;
 Adafruit_TSL2591 tsl2591 = Adafruit_TSL2591(2591);
 
