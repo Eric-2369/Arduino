@@ -1,0 +1,85 @@
+name: Compile Arduino sketches
+
+on:
+  workflow_dispatch:
+    inputs:
+      compile_climate_monitor_shanghai:
+        description: 'Compile climate-monitor-shanghai'
+        required: false
+        default: false
+        type: boolean
+      compile_climate_monitor_wuhan:
+        description: 'Compile climate-monitor-wuhan'
+        required: false
+        default: false
+        type: boolean
+      compile_climate_monitor_wuhan_office:
+        description: 'Compile climate-monitor-wuhan-office'
+        required: false
+        default: false
+        type: boolean
+      compile_sensor_fusion_display:
+        description: 'Compile sensor-fusion-display'
+        required: false
+        default: false
+        type: boolean
+      compile_spectrometer_display:
+        description: 'Compile spectrometer-display'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  compile-sketches:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile Arduino sketches
+        uses: arduino/compile-sketches@v1
+        with:
+          cli-version: 1.2.2
+          fqbn: arduino:renesas_uno:unor4wifi
+          platforms: |
+            - name: "arduino:renesas_uno"
+              version: 1.4.1
+          libraries: |
+            - name: ArduinoIoTCloud
+              version: 2.5.1
+            - name: Sensirion I2C SHT4x
+              version: 1.1.2
+            - name: Sensirion I2C SCD4x
+              version: 1.0.0
+            - name: Sensirion I2C SGP40
+              version: 0.1.0
+            - name: Sensirion I2C SGP41
+              version: 1.0.0
+            - name: Sensirion I2C SFA3x
+              version: 1.0.0
+            - name: WZ Library
+              version: 1.0.0
+            - name: Adafruit BMP3XX Library
+              version: 2.1.5
+            - name: Adafruit TSL2561
+              version: 1.1.2
+            - name: Adafruit TSL2591 Library
+              version: 1.4.5
+            - name: SparkFun Spectral Triad AS7265X
+              version: 1.0.5
+            - name: Sensirion Gas Index Algorithm
+              version: 3.2.3
+            - name: LiquidCrystal_PCF8574
+              version: 2.2.0
+            - name: U8g2
+              version: 2.35.30
+            - name: Adafruit ST7735 and ST7789 Library
+              version: 1.11.0
+          sketch-paths: |
+            ${{ fromJSON(github.event.inputs.compile_climate_monitor_shanghai) && '- src/climate-monitor-shanghai' || '' }}
+            ${{ fromJSON(github.event.inputs.compile_climate_monitor_wuhan) && '- src/climate-monitor-wuhan' || '' }}
+            ${{ fromJSON(github.event.inputs.compile_climate_monitor_wuhan_office) && '- src/climate-monitor-wuhan-office' || '' }}
+            ${{ fromJSON(github.event.inputs.compile_sensor_fusion_display) && '- src/sensor-fusion-display' || '' }}
+            ${{ fromJSON(github.event.inputs.compile_spectrometer_display) && '- src/spectrometer-display' || '' }}
+          verbose: true
